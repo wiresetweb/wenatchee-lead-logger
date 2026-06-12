@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Keep the example env committed
 !.env.example
+
+# Cloudflare / OpenNext build artifacts
+.open-next/
+.wrangler/
+.dev.vars

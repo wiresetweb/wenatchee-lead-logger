@@ -75,3 +75,24 @@ src/
 
 Content lives in `src/content` and brand/contact in `src/lib/site.ts`, so pages and a
 future visual redesign stay decoupled from copy and structure.
+
+## Deploying to Cloudflare (Workers via OpenNext)
+
+The app uses a server action, so it deploys as a Worker using the
+[`@opennextjs/cloudflare`](https://opennext.js.org/cloudflare) adapter. Config is
+committed (`wrangler.jsonc`, `open-next.config.ts`) with the worker name
+`wenatchee-lead-logger` and a matching `WORKER_SELF_REFERENCE` binding.
+
+In the Cloudflare Workers Builds project settings, set:
+
+- **Build command:** `npx opennextjs-cloudflare build`
+- **Deploy command:** `npx wrangler deploy`
+
+(Do **not** leave the deploy command as a bare `npx wrangler deploy` without the
+OpenNext build command — the `.open-next/worker.js` bundle must be built first.)
+
+Locally: `npm run preview` (build + local preview) or `npm run deploy` (build + deploy).
+
+Environment variables / secrets are set in the Cloudflare dashboard (see `.env.example`).
+None are required for the first deploy — the quote form degrades gracefully until
+Supabase is configured.
