@@ -44,4 +44,34 @@ Build begins in Phase 1 (see roadmap).
 
 ## Quick start
 
-> Not yet scaffolded. Phase 1 will add the Next.js app, env setup, and run scripts.
+```bash
+npm install
+cp .env.example .env.local   # fill in when Supabase / Cloudflare are provisioned
+npm run dev                  # http://localhost:3000
+```
+
+The quote form works without a backend — leads are validated and logged with a warning
+until `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are set, at which point they persist to
+the `leads` table.
+
+Scripts: `npm run build`, `npm run lint`, `npm run typecheck`.
+
+## Project structure (Phase 1)
+
+```
+src/
+  app/                  # routes (App Router)
+    page.tsx            # home (hero + embedded quote form)
+    how-it-works/  for-contractors/  about/  contact/
+    services/  services/[service]/   # services hub + dynamic service pages
+    locations/ locations/[city]/     # service-area hub + dynamic city pages
+    get-quote/  thank-you/           # conversion flow
+    privacy/  terms/                 # legal (compliance disclosures)
+    sitemap.ts  robots.ts            # SEO
+  components/           # Header, Footer, QuoteForm, sections, ui primitives, JsonLd
+  content/              # services.ts, cities.ts (content-driven pages)
+  lib/                  # site config, seo helpers, consent (TCPA), leads action, supabase
+```
+
+Content lives in `src/content` and brand/contact in `src/lib/site.ts`, so pages and a
+future visual redesign stay decoupled from copy and structure.

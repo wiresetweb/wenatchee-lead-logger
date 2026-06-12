@@ -317,5 +317,5 @@ Planning docs, brand direction, stack decision, repo set up.
   project. (Confirm the exact project name in the Supabase org before pausing.)
 
 ### Still open
-- **Same-day SLA hours:** confirm with the buyer the cutoff time after which "same-day"
-  becomes "next business day" (drives the fallback messaging).
+- **Same-day SLA hours:** cutoff is **5:00 PM local** for now (leads after 5pm show the
+  "next business day" wording). May change later.

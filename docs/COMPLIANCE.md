@@ -108,8 +108,8 @@ true in practice. To keep it honest:
 - **Bind it in the buyer agreement:** the buyer (contractor) contractually commits to
   same-day outreach on leads delivered during business hours. Our real-time email delivery
   makes this operationally feasible.
-- **Time-fence it:** for leads submitted late evening/overnight, the on-site wording falls
-  back to **"the same day or next business day."** Decide the cutoff time with the buyer.
+- **Time-fence it:** leads submitted after **5:00 PM local** show the **"next business day"**
+  wording instead of same-day. (Cutoff is 5pm for now; may change.)
 - **Monitor it:** track buyer contact times (eventually via the portal/outcome data); if a
   buyer routinely misses same-day, stop making the promise for their leads or replace them.
 - Phrase as a reasonable expectation ("a local pro will reach out the same day"), not an
