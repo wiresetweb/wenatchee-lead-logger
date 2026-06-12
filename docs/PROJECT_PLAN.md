@@ -59,19 +59,17 @@ Homeowner  ──(free quote request)──►  Our site  ──(enrich + score)
 - **Parent company:** Emerald Lead Co.
 - **Consumer-facing site brand:** trade-agnostic + geo-anchored for SEO and expansion.
 
-### Domain candidates (verify availability before committing)
-| Name | Domain idea | Notes |
-| --- | --- | --- |
-| **Wenatchee Valley Pros** ⭐ | wenatcheevalleypros.com | Exact-geo match, trade-agnostic, clearly local. Top pick. |
-| Apple Capital Pros | applecapitalpros.com | Wenatchee = "Apple Capital of the World"; strong local flavor. |
-| Cascade Home Pros | cascadehomepros.com | Regional, expandable beyond the valley. |
-| Emerald Valley Pros | emeraldvalleypros.com | Ties to parent brand. |
-| Find a Pro Wenatchee | findaprowenatchee.com | Literal, descriptive. |
+### Selected brand ✅
+- **Site brand:** **Cascade Home Pros** — `cascadehomepros.com` (verify availability/secure domain).
+- Regional ("Cascades") and trade-agnostic — expandable beyond the Wenatchee Valley to
+  other Cascade/Central-WA markets *and* beyond electrical, without a rebrand.
 
-> **Recommendation:** `WenatcheeValleyPros.com`. The exact geo + service term in the
-> domain still carries mild local-SEO/CTR benefit and reads as exactly what it is.
-> Keep "Valley/Pros" generic so plumbing, HVAC, etc. fit the same brand.
-> **Open decision — needs your input** (see §12).
+> **SEO implication:** because the domain no longer contains "Wenatchee," the geo signal
+> has to come from **on-page content and city pages**, not the domain. We lean harder on
+> the service×city architecture, local content, and structured data (see SEO_STRATEGY).
+
+Alternates considered (not chosen): Wenatchee Valley Pros, Apple Capital Pros,
+Emerald Valley Pros, Find a Pro Wenatchee.
 
 ### Visual identity
 - **Tone:** friendly, trustworthy, neighborly, fast. Not corporate, not spammy.
@@ -150,7 +148,7 @@ Homeowner  ──(free quote request)──►  Our site  ──(enrich + score)
 | Framework | **Next.js (App Router)** | One codebase for SSG SEO pages, dynamic forms, and the admin dashboard. Best-in-class SEO + DX. |
 | Data / auth | **Supabase (Postgres)** | Managed Postgres, Row Level Security, Auth for admin, edge functions, generous free tier. MCP connected. |
 | Enrichment compute | **Serverless functions + queue** | Async, retryable enrichment. Supabase Edge Functions or Cloudflare Workers/Queues. |
-| Hosting | **Cloudflare** (or Vercel) | Cloudflare MCP connected (Pages/Workers/Turnstile/R2). Vercel is the no-friction Next.js fallback. |
+| Hosting | **Cloudflare** ✅ | Selected. Pages/Workers + Turnstile + R2, all MCP-connected. Unifies site hosting, anti-bot, and enrichment workers on one platform. |
 | Anti-bot | **Cloudflare Turnstile** | Free, privacy-friendly CAPTCHA for the form. |
 | Analytics | **GA4 + server-side events** | Conversion tracking; add call tracking later. |
 | Email | Resend / Postmark | Transactional lead delivery + notifications. |
@@ -159,7 +157,9 @@ Homeowner  ──(free quote request)──►  Our site  ──(enrich + score)
 > very fast). Rejected for v1 because we need integrated forms + an admin dashboard;
 > Next.js does all three. Revisit if the content layer grows huge.
 >
-> **Open decision — Cloudflare vs Vercel hosting** (see §12).
+> **Cloudflare deployment note:** deploy Next.js via `@opennextjs/cloudflare` (OpenNext)
+> on Workers, or run the marketing site as a static export on Pages with enrichment/intake
+> as separate Workers. Decide the exact split in Phase 1 — both keep us fully on Cloudflare.
 
 ---
 
@@ -264,13 +264,19 @@ Planning docs, brand direction, stack decision, repo set up.
 
 ---
 
-## 12. Open decisions (need your input)
+## 12. Decisions
 
-1. **Site brand + domain** — go with `WenatcheeValleyPros.com`, or one of the alternates in §3?
-2. **Hosting** — Cloudflare (MCP connected, more setup) vs Vercel (fastest path for Next.js)?
-3. **Enrichment budget** — which paid data vendors are in budget for v1? (drives source
-   selection in LEAD_ENRICHMENT §). A lean v1 can start ~$50–200/mo.
+### Resolved ✅
+1. **Site brand + domain** — **Cascade Home Pros** (`cascadehomepros.com`).
+2. **Hosting** — **Cloudflare** (Pages/Workers + Turnstile + R2).
+3. **Enrichment budget** — **Free sources only for v1** (Census ACS + Chelan/Douglas County
+   assessor records + free-tier validation). Paid vendors deferred until leads are flowing.
+   See [LEAD_ENRICHMENT.md](LEAD_ENRICHMENT.md) §3.
+
+### Still open
 4. **Buyer delivery format** — what does the launch electrical buyer want? (email, CSV,
-   webhook into their CRM, shared spreadsheet?)
-5. **Reviews/social proof** — do we have any real reviews/testimonials to seed trust, or
-   start without and collect over time? (No fabricated reviews — compliance.)
+   webhook into their CRM, shared spreadsheet?) Needed for Phase 3.
+5. **Reviews/social proof** — any real reviews/testimonials to seed trust, or start without
+   and collect over time? (No fabricated reviews — compliance.)
+6. **Domain registration** — confirm `cascadehomepros.com` is available and register it
+   (plus connect to Cloudflare).

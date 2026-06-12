@@ -51,8 +51,27 @@ raw lead ─► validate & normalize ─► anti-fraud checks ─► append data
 
 ## 3. Data sources
 
-> Pick a lean v1 set within budget (see PROJECT_PLAN §12). Costs are per-lookup ballparks
-> and change — confirm current pricing. Don't over-build before there's lead volume.
+> **v1 decision: free sources only** (see PROJECT_PLAN §12). We build the full pipeline
+> now using no-cost data, and wire in paid vendors once lead volume justifies the spend.
+> The paid options are listed below as the upgrade path — do not integrate them in v1.
+
+### v1 — free stack (build this)
+| Source | Provides | How / caveats |
+| --- | --- | --- |
+| **Chelan & Douglas County Assessor / parcel GIS** | Assessed value, owner name, year built, sqft, owner-occupied signal | Free public records. Access via the county parcel search / GIS (Chelan County Assessor, Douglas County Assessor). Likely needs a scraper/lookup against the parcel site; respect ToS + rate limits, cache aggressively by address. This is our primary property + ownership source for v1. |
+| **Census ACS API** | Area median income, home values, demographics by tract | **Free** API key. Gives area-level income (we don't get individual income free — label "estimated"/area-level). |
+| **Owner-name vs. lead-name match** | Owner-occupied inference | Compare assessor owner name to the lead's name → likely owner vs. renter. Cheapest high-value signal we have. |
+| **Email validation (free tier)** | Syntax + MX/domain + disposable check | Do syntax + DNS/MX lookup ourselves; maintain a disposable-domain blocklist. No paid API needed for v1. |
+| **Phone validation (format/region)** | E.164 normalization, basic plausibility | Use a library (e.g. libphonenumber) for format/region. Line-type (mobile/VoIP) needs a paid lookup → deferred. |
+| **IP geolocation (free tier)** | City-level IP → sanity vs. claimed city | Free-tier geo-IP for a soft fraud signal. |
+
+> **Honest limitation of free-only v1:** we can get **ownership, home value, age, and area
+> income** (the highest-value fields) from county assessor + Census at no cost, but
+> **phone line-type and verified per-person income require paid APIs** and are deferred.
+> The free stack still delivers the moat features (homeowner status, value, property age).
+
+### Upgrade path — paid sources (deferred until volume justifies)
+> Costs are per-lookup ballparks and change — confirm current pricing before integrating.
 
 ### Property & ownership (highest value for contractors)
 | Source | Provides | Notes |
@@ -104,6 +123,11 @@ hard fraud flag. Grades let us tier pricing and let buyers prioritize.
 
 > Weights are starting guesses. **Recalibrate against real buyer feedback** (which leads
 > closed) as soon as we have it — closed-loop scoring is the long-term advantage.
+>
+> **v1 (free-only) availability:** homeowner status, property value, property age, service
+> type, timeline, and budget are all available from the free stack and carry the most
+> weight. **Phone line-type scoring is deferred** (needs a paid lookup) — until then, score
+> contact quality from email validity + phone format/region only.
 
 ---
 

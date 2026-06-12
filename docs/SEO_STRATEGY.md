@@ -23,6 +23,10 @@ Three pillars:
 2. **Content** — cost guides, FAQs, and explainers that match real searcher intent.
 3. **Trust/technical** — fast, mobile-first, structured data, genuine E-E-A-T.
 
+> **Brand note:** the domain is `cascadehomepros.com` (no city in it), so **all geo signal
+> must come from on-page content, city pages, titles/metadata, and structured data** — the
+> service×city architecture below does that heavy lifting.
+
 ---
 
 ## 2. Service area (geo targets)

@@ -13,6 +13,8 @@ We launch with the **electrical trade** but the brand and platform are
 **trade-agnostic** so we can expand to plumbing, HVAC, roofing, landscaping, and
 more across the same service area.
 
+**Site brand:** Cascade Home Pros (`cascadehomepros.com`).
+
 ---
 
 ## Status
@@ -34,8 +36,8 @@ Build begins in Phase 1 (see roadmap).
 
 - **Frontend / site:** Next.js (App Router) — SSG/ISR for SEO, server actions for forms
 - **Backend / data:** Supabase (Postgres + Auth + Storage)
-- **Enrichment:** serverless functions calling property / contact / demographic APIs
-- **Hosting:** Cloudflare or Vercel
+- **Enrichment:** Cloudflare Workers calling free data sources (county assessor + Census ACS) in v1
+- **Hosting:** Cloudflare (Pages/Workers + Turnstile + R2)
 - **Analytics:** GA4 + server-side conversion tracking + call tracking
 
 ## Quick start
