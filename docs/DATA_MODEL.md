@@ -83,10 +83,25 @@ Each transition is timestamped. `status` on `leads` tracks the current state.
 | service_types | text[] | services they want |
 | min_grade | text | lowest grade they accept |
 | price_per_lead | numeric | intro/discount rate for launch buyer |
-| delivery_method | text | email / webhook / csv |
-| delivery_target | text | email addr or webhook URL |
+| delivery_method | text | `email` (v1) — real-time notification on every lead |
+| delivery_target | text | notification email address(es) |
+| same_day_sla | boolean | buyer committed to same-day contact (backs the on-site promise — see COMPLIANCE §6) |
 | active | boolean | |
 | created_at | timestamptz | |
+
+#### Buyer portal auth
+Buyers log into the site to view their leads. Map Supabase Auth users to buyers:
+| Column | Type | Notes |
+| --- | --- | --- |
+| buyer_users.id | uuid PK | |
+| buyer_users.buyer_id | uuid FK → buyers | |
+| buyer_users.auth_user_id | uuid FK → auth.users | Supabase Auth user |
+| buyer_users.role | text | `owner` / `member` (per-buyer login) |
+
+> A single `buyer_id` can have multiple logins. **RLS** on `leads`/`lead_enrichment`/
+> `lead_deliveries` restricts a buyer's users to rows where a `lead_deliveries` row links
+> that `lead` to their `buyer_id`. Admins (separate role) see everything. The public site
+> writes leads via a server-side service role only — never the anon client.
 
 ### `lead_deliveries` — record of each lead sent to a buyer
 | Column | Type | Notes |
@@ -95,11 +110,17 @@ Each transition is timestamped. `status` on `leads` tracks the current state.
 | lead_id | uuid FK → leads | |
 | buyer_id | uuid FK → buyers | |
 | delivered_at | timestamptz | |
-| price | numeric | what we charged for this lead |
-| method | text | email / webhook / csv |
+| price | numeric | what we charged (0 for free intro leads) |
+| is_intro_free | boolean | true for the 5–10 free intro leads given to entice the buyer |
+| method | text | `email` (v1) |
 | status | text | sent / failed / accepted / rejected / refunded |
-| response | jsonb | webhook response / notes |
+| response | jsonb | delivery response / notes |
+| contacted_at | timestamptz | when the buyer reported contacting the lead — monitors same-day SLA |
 | outcome | text | (later) contacted / quoted / won / lost — closed-loop scoring |
+
+> **Revenue + trigger tracking:** sum `price` where `is_intro_free = false` for revenue;
+> the enrichment-upgrade trigger fires when cumulative profit ≥ ~$200 (PROJECT_PLAN §12).
+> `contacted_at − delivered_at` measures same-day-SLA adherence for the contact promise.
 
 ### Optional config tables (Phase 4, for programmatic pages)
 - `services` (slug, trade, name, description, avg_cost_low/high)
@@ -110,8 +131,9 @@ Each transition is timestamped. `status` on `leads` tracks the current state.
 ## 3. Routing logic (v1 → later)
 
 - **v1 (one buyer):** every electrical lead at/above the buyer's `min_grade` and in their
-  `service_areas` is delivered to the launch buyer; log to `lead_deliveries` with the
-  intro price.
+  `service_areas` is delivered to the launch buyer via **real-time email**, and appears in
+  their **portal**; log to `lead_deliveries`. The first **5–10** are marked
+  `is_intro_free = true` (price 0); after that, the discounted intro price applies.
 - **Later (multi-buyer):** match lead → eligible buyers by trade/area/service/grade, then
   route by priority/round-robin/auction. Support exclusive (one buyer) vs. shared (N buyers)
   pricing.
@@ -122,6 +144,9 @@ Each transition is timestamped. `status` on `leads` tracks the current state.
 
 - **Row Level Security** on all tables; the public site writes only to `leads` (and only via
   a server action / service role, never anon-key client writes of PII).
-- Admin dashboard reads via authenticated Supabase Auth (internal users only).
+- **Buyer portal:** buyer users (via `buyer_users`) can read only leads delivered to their
+  `buyer_id` (RLS joins through `lead_deliveries`). They never see other buyers' leads or
+  internal revenue/cost fields.
+- Admin dashboard reads via authenticated Supabase Auth (internal role only).
 - Enrichment worker uses a service-role key, server-side only.
 - See [COMPLIANCE.md](COMPLIANCE.md) §5 for the full data-security posture.

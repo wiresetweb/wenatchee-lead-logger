@@ -95,10 +95,25 @@ Guardrails:
 ## 6. Reviews & claims
 
 - **No fabricated reviews, testimonials, or "as seen on" badges.** FTC actively pursues
-  fake reviews (and the 2024 rule allows civil penalties). Collect genuine reviews over time.
+  fake reviews (and the 2024 rule allows civil penalties). We have **no reviews yet** —
+  start without them and collect genuine ones over time. Never invent placeholder reviews.
 - Don't claim contractors are "licensed/insured/vetted" unless we actually verify it — if we
   advertise vetting, we must do the vetting and keep records.
 - Don't imply we *are* the contractor or guarantee work quality we don't control.
+
+### "Same-day contact" promise — guardrail
+We advertise that a local pro will **contact the homeowner the same day**. Because this is a
+specific advertised promise, it's a deceptive claim under the FTC Act unless it's actually
+true in practice. To keep it honest:
+- **Bind it in the buyer agreement:** the buyer (contractor) contractually commits to
+  same-day outreach on leads delivered during business hours. Our real-time email delivery
+  makes this operationally feasible.
+- **Time-fence it:** for leads submitted late evening/overnight, the on-site wording falls
+  back to **"the same day or next business day."** Decide the cutoff time with the buyer.
+- **Monitor it:** track buyer contact times (eventually via the portal/outcome data); if a
+  buyer routinely misses same-day, stop making the promise for their leads or replace them.
+- Phrase as a reasonable expectation ("a local pro will reach out the same day"), not an
+  ironclad guarantee of a specific outcome.
 
 ---
 
@@ -113,3 +128,4 @@ Guardrails:
 - [ ] Data vendor ToS checked for resale/marketing-use rights
 - [ ] RLS + server-side keys + HTTPS; retention policy defined
 - [ ] No fabricated reviews; verify any "vetted/licensed" claims we make
+- [ ] "Same-day contact" promise bound in buyer agreement (SLA) + time-fenced fallback wording

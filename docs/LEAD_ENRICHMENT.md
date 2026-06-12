@@ -70,7 +70,20 @@ raw lead ─► validate & normalize ─► anti-fraud checks ─► append data
 > **phone line-type and verified per-person income require paid APIs** and are deferred.
 > The free stack still delivers the moat features (homeowner status, value, property age).
 
-### Upgrade path — paid sources (deferred until volume justifies)
+### Upgrade trigger (when to start paying)
+**Upgrade to the paid stack once cumulative profit ≥ ~4× the monthly run cost** — i.e.
+about **$200** in profit against a ~$50/mo paid stack.
+
+Go-to-market path to get there:
+1. Give the launch electrical buyer **5–10 free leads first** to prove value and build trust.
+2. Then sell leads at the discounted intro rate. ~10 paid leads clears the ~$200 trigger.
+3. At the trigger, integrate the first paid tier (property API + phone line-type) — these
+   close the two biggest gaps in the free stack (automated value/ownership at scale, and
+   mobile-vs-VoIP scoring).
+
+Track against this in the admin dashboard: cumulative profit vs. the $200 threshold.
+
+### Upgrade path — paid sources (integrate at the trigger above)
 > Costs are per-lookup ballparks and change — confirm current pricing before integrating.
 
 ### Property & ownership (highest value for contractors)

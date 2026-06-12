@@ -13,7 +13,7 @@ We launch with the **electrical trade** but the brand and platform are
 **trade-agnostic** so we can expand to plumbing, HVAC, roofing, landscaping, and
 more across the same service area.
 
-**Site brand:** Cascade Home Pros (`cascadehomepros.com`).
+**Site brand:** Cascade Home Connect (`cascadehomeconnect.com`).
 
 ---
 
@@ -35,8 +35,10 @@ Build begins in Phase 1 (see roadmap).
 ## Proposed stack (see PROJECT_PLAN for rationale)
 
 - **Frontend / site:** Next.js (App Router) — SSG/ISR for SEO, server actions for forms
-- **Backend / data:** Supabase (Postgres + Auth + Storage)
+- **Backend / data:** Supabase (Postgres + Auth + Storage); Auth powers both the internal
+  admin dashboard and the buyer login portal (RLS-scoped to each buyer's leads)
 - **Enrichment:** Cloudflare Workers calling free data sources (county assessor + Census ACS) in v1
+- **Delivery:** real-time email to the buyer on every lead, plus the buyer portal
 - **Hosting:** Cloudflare (Pages/Workers + Turnstile + R2)
 - **Analytics:** GA4 + server-side conversion tracking + call tracking
 

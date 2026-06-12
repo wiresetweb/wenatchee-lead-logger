@@ -60,16 +60,18 @@ Homeowner  ──(free quote request)──►  Our site  ──(enrich + score)
 - **Consumer-facing site brand:** trade-agnostic + geo-anchored for SEO and expansion.
 
 ### Selected brand ✅
-- **Site brand:** **Cascade Home Pros** — `cascadehomepros.com` (verify availability/secure domain).
+- **Site brand:** **Cascade Home Connect** — `cascadehomeconnect.com` (register + connect to Cloudflare).
+- "Connect" reinforces our core positioning — the friendly middleman who *connects*
+  homeowners with trusted local pros.
 - Regional ("Cascades") and trade-agnostic — expandable beyond the Wenatchee Valley to
   other Cascade/Central-WA markets *and* beyond electrical, without a rebrand.
 
-> **SEO implication:** because the domain no longer contains "Wenatchee," the geo signal
+> **SEO implication:** because the domain doesn't contain "Wenatchee," the geo signal
 > has to come from **on-page content and city pages**, not the domain. We lean harder on
 > the service×city architecture, local content, and structured data (see SEO_STRATEGY).
 
-Alternates considered (not chosen): Wenatchee Valley Pros, Apple Capital Pros,
-Emerald Valley Pros, Find a Pro Wenatchee.
+Alternates considered (not chosen): Cascade Home Pros (`cascadehomepros.com` — taken),
+Wenatchee Valley Pros, Apple Capital Pros, Emerald Valley Pros.
 
 ### Visual identity
 - **Tone:** friendly, trustworthy, neighborly, fast. Not corporate, not spammy.
@@ -84,13 +86,20 @@ Emerald Valley Pros, Find a Pro Wenatchee.
 
 ### For homeowners (consumer side)
 1. Instantly communicate: *free, fast, no-obligation, local, vetted pros.*
-2. Make requesting a quote frictionless (multi-step form, mobile-first, click-to-call).
-3. Build trust (how it works, transparency that we match you with providers, social proof).
-4. Answer their questions (cost guides, service explainers) → SEO + trust.
+2. **Lead with the "same-day contact" promise** — "Get matched with a local pro who'll
+   reach out **the same day**." Strong, specific trust signal and conversion driver.
+   ⚠️ This is an advertised promise, so it's only safe if the buyer is **contractually
+   committed** to same-day outreach — see COMPLIANCE §6 for the guardrail (and a fallback
+   "next business day" line for leads that arrive late at night).
+3. Make requesting a quote frictionless (multi-step form, mobile-first, click-to-call).
+4. Build trust (how it works, transparency that we match you with providers).
+5. Answer their questions (cost guides, service explainers) → SEO + trust.
 
 ### For contractors (buyer side)
 1. A clear "For Contractors / Get Leads" page explaining lead quality + enrichment.
-2. Eventually: a buyer portal to view/accept leads and see enrichment.
+2. **Real-time email** on every new lead (their primary alert).
+3. **Buyer portal** (login on the site) to view their delivered leads + enrichment and
+   track status — built in Phase 3, not "eventually."
 
 ### For us (operator)
 1. Capture every lead reliably with full attribution (UTM, source, page).
@@ -129,15 +138,25 @@ Emerald Valley Pros, Find a Pro Wenatchee.
                 ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  Delivery                                                     │
-│  - real-time email / webhook / CSV to buyer                   │
-│  - log delivery + price → Supabase (lead_deliveries)          │
-└───────────────┬──────────────────────────────────────────────┘
-                ▼
-┌──────────────────────────────────────────────────────────────┐
-│  Admin dashboard (Next.js + Supabase Auth, internal only)     │
-│  - leads, enrichment, scores, deliveries, revenue, buyers     │
-└──────────────────────────────────────────────────────────────┘
+│  - real-time EMAIL notification to buyer on every new lead    │
+│  - write delivery + price → Supabase (lead_deliveries)        │
+└───────────────┬───────────────────────────┬──────────────────┘
+                ▼                            ▼
+┌───────────────────────────────┐  ┌───────────────────────────┐
+│  Buyer portal (site login)    │  │  Admin dashboard          │
+│  Next.js + Supabase Auth      │  │  Next.js + Supabase Auth  │
+│  - buyer sees ONLY their      │  │  internal only            │
+│    delivered leads + enrich   │  │  - all leads, enrichment, │
+│    (RLS-scoped)               │  │    scores, deliveries,    │
+│  - lead status / contact info │  │    revenue, buyers        │
+└───────────────────────────────┘  └───────────────────────────┘
 ```
+
+**Two authenticated surfaces, one auth system (Supabase Auth, role-based):**
+- **Buyer portal** — contractors log in at the site and see only the leads delivered to
+  them (enforced by Row Level Security), alongside the email notifications they get in
+  real time. This is part of the buyer's core value and a retention hook.
+- **Admin dashboard** — internal-only view of everything.
 
 ---
 
@@ -146,7 +165,7 @@ Emerald Valley Pros, Find a Pro Wenatchee.
 | Layer | Choice | Why |
 | --- | --- | --- |
 | Framework | **Next.js (App Router)** | One codebase for SSG SEO pages, dynamic forms, and the admin dashboard. Best-in-class SEO + DX. |
-| Data / auth | **Supabase (Postgres)** | Managed Postgres, Row Level Security, Auth for admin, edge functions, generous free tier. MCP connected. |
+| Data / auth | **Supabase (Postgres)** | Managed Postgres, Row Level Security (scopes buyers to their own leads), Auth for **both admin + buyer portal**, edge functions, free tier. MCP connected. |
 | Enrichment compute | **Serverless functions + queue** | Async, retryable enrichment. Supabase Edge Functions or Cloudflare Workers/Queues. |
 | Hosting | **Cloudflare** ✅ | Selected. Pages/Workers + Turnstile + R2, all MCP-connected. Unifies site hosting, anti-bot, and enrichment workers on one platform. |
 | Anti-bot | **Cloudflare Turnstile** | Free, privacy-friendly CAPTCHA for the form. |
@@ -215,6 +234,8 @@ Full detail in [COMPLIANCE.md](COMPLIANCE.md).
 - **FCRA boundary:** enrichment data is for **marketing/matching only**, never for credit,
   insurance, employment, or housing eligibility decisions. Modeled income is labeled as
   *estimated*, never represented as verified.
+- **Same-day contact claim:** only advertised because the buyer commits to it via the
+  buyer agreement (SLA); otherwise it would be a deceptive claim. See COMPLIANCE §6.
 - **Opt-out / DNC** handling and PII security.
 
 ---
@@ -237,9 +258,12 @@ Planning docs, brand direction, stack decision, repo set up.
 - Enrichment worker: property + ownership + value, phone/email validation, Census append.
 - Lead scoring v1. Store enrichment, surface on admin.
 
-### Phase 3 — Delivery + Admin
-- Admin dashboard (Supabase Auth, internal): leads, enrichment, scores, deliveries, revenue.
-- Buyer delivery: real-time email/webhook/CSV to the launch electrical buyer; log revenue.
+### Phase 3 — Delivery + portals
+- **Real-time email** to the buyer on every new lead (their primary alert).
+- **Buyer portal** (Supabase Auth, site login): buyer sees only their delivered leads +
+  enrichment, RLS-scoped. Free intro leads flow here too.
+- **Admin dashboard** (internal): all leads, enrichment, scores, deliveries, revenue, buyers.
+- Log every delivery + price → `lead_deliveries`.
 
 ### Phase 4 — SEO scale
 - Programmatic service×city pages, cost guides, FAQ/blog content.
@@ -248,7 +272,9 @@ Planning docs, brand direction, stack decision, repo set up.
 
 ### Phase 5 — Expand
 - Additional trades (plumbing, HVAC, roofing, …) on the same platform.
-- Multiple buyers, lead routing/auction, billing/invoicing, buyer portal.
+- Multiple buyers, lead routing/auction, billing/invoicing.
+- **Enrichment upgrade** to a paid stack once the profit trigger is hit (see
+  [LEAD_ENRICHMENT.md](LEAD_ENRICHMENT.md) §3 / §7).
 
 ---
 
@@ -267,16 +293,29 @@ Planning docs, brand direction, stack decision, repo set up.
 ## 12. Decisions
 
 ### Resolved ✅
-1. **Site brand + domain** — **Cascade Home Pros** (`cascadehomepros.com`).
+1. **Site brand + domain** — **Cascade Home Connect** (`cascadehomeconnect.com`).
 2. **Hosting** — **Cloudflare** (Pages/Workers + Turnstile + R2).
 3. **Enrichment budget** — **Free sources only for v1** (Census ACS + Chelan/Douglas County
-   assessor records + free-tier validation). Paid vendors deferred until leads are flowing.
-   See [LEAD_ENRICHMENT.md](LEAD_ENRICHMENT.md) §3.
+   assessor records + free-tier validation). Upgrade to a paid stack once the profit
+   trigger is hit (see below). See [LEAD_ENRICHMENT.md](LEAD_ENRICHMENT.md) §3.
+4. **Buyer delivery** — **real-time email on every lead + a buyer login portal** on the site
+   to view delivered leads + enrichment. (Built in Phase 3.)
+5. **Reviews** — **none yet**; start without and collect genuine reviews over time. No
+   fabricated reviews (compliance). Use the same-day-contact promise + transparency as the
+   early trust signals instead.
+6. **Same-day contact promise** — feature it in messaging; backed by the buyer's SLA
+   commitment (COMPLIANCE §6).
+7. **Enrichment upgrade trigger** — upgrade to paid enrichment once cumulative **profit ≥
+   ~4× monthly run cost** (≈ **$200** against a ~$50/mo stack). Go-to-market tactic: give
+   the launch buyer **5–10 free leads first** to prove value, then sell; ~10 paid leads
+   should clear the trigger. Tracked in [LEAD_ENRICHMENT.md](LEAD_ENRICHMENT.md) §3.
+
+### Operational notes
+- **Domain:** register `cascadehomeconnect.com` and connect it to Cloudflare.
+- **Supabase project limits:** if provisioning a new project requires pausing an existing
+  one (free-tier active-project limit), **pause "mory's website"** — do not pause any other
+  project. (Confirm the exact project name in the Supabase org before pausing.)
 
 ### Still open
-4. **Buyer delivery format** — what does the launch electrical buyer want? (email, CSV,
-   webhook into their CRM, shared spreadsheet?) Needed for Phase 3.
-5. **Reviews/social proof** — any real reviews/testimonials to seed trust, or start without
-   and collect over time? (No fabricated reviews — compliance.)
-6. **Domain registration** — confirm `cascadehomepros.com` is available and register it
-   (plus connect to Cloudflare).
+- **Same-day SLA hours:** confirm with the buyer the cutoff time after which "same-day"
+  becomes "next business day" (drives the fallback messaging).
