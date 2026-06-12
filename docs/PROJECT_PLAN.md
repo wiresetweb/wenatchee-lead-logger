@@ -1,0 +1,276 @@
+# Project Plan — Emerald Lead Co. (Wenatchee Valley)
+
+> Master planning document. Companion docs: [SEO_STRATEGY](SEO_STRATEGY.md),
+> [LEAD_ENRICHMENT](LEAD_ENRICHMENT.md), [COMPLIANCE](COMPLIANCE.md),
+> [DATA_MODEL](DATA_MODEL.md).
+
+---
+
+## 1. Vision
+
+Build the dominant local home-services lead-gen brand for the **Wenatchee Valley**.
+To homeowners we are the easiest, most trustworthy way to get matched with a vetted
+local pro — free and no-obligation. To contractors we are the best source of
+**high-intent, enriched, scored leads** in the valley.
+
+We start with **electricians** (we already have a buyer), then expand trade-by-trade
+on the same infrastructure and SEO footprint.
+
+### Why this can win
+
+- **Local SEO is winnable.** The Wenatchee Valley is a small, under-optimized market.
+  A fast, well-structured, content-rich site can outrank thin contractor sites and
+  national directories for long-tail local queries.
+- **Enrichment is a real moat.** Most lead sellers hand over a name + phone. We hand
+  over a *qualified, scored* lead with home value, ownership, and validated contact —
+  worth multiples more to a contractor and far stickier.
+- **Trade-agnostic = compounding.** Every city/SEO asset we build for electrical is
+  reusable for the next trade. One audience, many monetization paths.
+
+---
+
+## 2. Business model
+
+```
+Homeowner  ──(free quote request)──►  Our site  ──(enrich + score)──►  Contractor buyer
+                                          │                                  │
+                                    capture lead                      pays per lead
+```
+
+- **Acquisition:** Organic local SEO (primary), then paid search/social as budget allows.
+- **Conversion:** High-converting multi-step quote form with strong trust signals.
+- **Product:** The *enriched, scored lead* is the product we sell.
+- **Monetization (v1):** Sell electrical leads to one launch buyer at a discounted
+  intro rate. Deliver in real time with full enrichment.
+- **Monetization (later):** Multiple buyers per trade, lead routing/auction, exclusive
+  vs. shared lead pricing, tiered pricing by lead grade, monthly minimums.
+
+### Unit economics to track from day one
+- Cost per lead (CPL) acquired (organic ≈ amortized content cost; paid = ad spend)
+- Revenue per lead (RPL) and per *graded* lead (A/B/C)
+- Enrichment cost per lead (API calls)
+- Gross margin per lead = RPL − CPL − enrichment cost − delivery cost
+- Buyer retention / repeat purchase
+
+---
+
+## 3. Brand & naming
+
+- **Parent company:** Emerald Lead Co.
+- **Consumer-facing site brand:** trade-agnostic + geo-anchored for SEO and expansion.
+
+### Domain candidates (verify availability before committing)
+| Name | Domain idea | Notes |
+| --- | --- | --- |
+| **Wenatchee Valley Pros** ⭐ | wenatcheevalleypros.com | Exact-geo match, trade-agnostic, clearly local. Top pick. |
+| Apple Capital Pros | applecapitalpros.com | Wenatchee = "Apple Capital of the World"; strong local flavor. |
+| Cascade Home Pros | cascadehomepros.com | Regional, expandable beyond the valley. |
+| Emerald Valley Pros | emeraldvalleypros.com | Ties to parent brand. |
+| Find a Pro Wenatchee | findaprowenatchee.com | Literal, descriptive. |
+
+> **Recommendation:** `WenatcheeValleyPros.com`. The exact geo + service term in the
+> domain still carries mild local-SEO/CTR benefit and reads as exactly what it is.
+> Keep "Valley/Pros" generic so plumbing, HVAC, etc. fit the same brand.
+> **Open decision — needs your input** (see §12).
+
+### Visual identity
+- **Tone:** friendly, trustworthy, neighborly, fast. Not corporate, not spammy.
+- **Color:** emerald green primary (ties to Emerald Lead Co.), warm neutral support,
+  high-contrast CTA accent.
+- **Type:** clean humanist sans (e.g., Inter / Plus Jakarta Sans).
+- **Imagery:** real local/PNW feel; avoid obvious stock when possible.
+
+---
+
+## 4. What the website must do
+
+### For homeowners (consumer side)
+1. Instantly communicate: *free, fast, no-obligation, local, vetted pros.*
+2. Make requesting a quote frictionless (multi-step form, mobile-first, click-to-call).
+3. Build trust (how it works, transparency that we match you with providers, social proof).
+4. Answer their questions (cost guides, service explainers) → SEO + trust.
+
+### For contractors (buyer side)
+1. A clear "For Contractors / Get Leads" page explaining lead quality + enrichment.
+2. Eventually: a buyer portal to view/accept leads and see enrichment.
+
+### For us (operator)
+1. Capture every lead reliably with full attribution (UTM, source, page).
+2. Enrich + score automatically in real time.
+3. Deliver to buyer(s) instantly and log delivery + revenue.
+4. Admin dashboard to monitor leads, quality, deliveries, and revenue.
+
+---
+
+## 5. Architecture overview
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  Marketing site (Next.js, SSG/ISR)                            │
+│  - Home, How it works, For contractors, About, Legal          │
+│  - Service pages (panel upgrade, EV charger, repair, …)       │
+│  - City pages (Wenatchee, East Wenatchee, Cashmere, …)        │
+│  - Programmatic service×city pages + cost guides / blog       │
+│  - Multi-step quote form  ─────────────┐                      │
+└────────────────────────────────────────┼──────────────────────┘
+                                          │ server action / API
+                                          ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Lead intake API                                              │
+│  - validate, anti-spam (Turnstile + honeypot), dedupe         │
+│  - persist raw lead → Supabase (leads)                        │
+│  - enqueue enrichment                                         │
+└───────────────┬──────────────────────────────────────────────┘
+                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Enrichment worker (serverless / queue)                       │
+│  - property data, ownership, value, demographics              │
+│  - phone + email validation, line type                        │
+│  - lead scoring (A/B/C)  → Supabase (lead_enrichment)         │
+└───────────────┬──────────────────────────────────────────────┘
+                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Delivery                                                     │
+│  - real-time email / webhook / CSV to buyer                   │
+│  - log delivery + price → Supabase (lead_deliveries)          │
+└───────────────┬──────────────────────────────────────────────┘
+                ▼
+┌──────────────────────────────────────────────────────────────┐
+│  Admin dashboard (Next.js + Supabase Auth, internal only)     │
+│  - leads, enrichment, scores, deliveries, revenue, buyers     │
+└──────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 6. Tech stack & rationale
+
+| Layer | Choice | Why |
+| --- | --- | --- |
+| Framework | **Next.js (App Router)** | One codebase for SSG SEO pages, dynamic forms, and the admin dashboard. Best-in-class SEO + DX. |
+| Data / auth | **Supabase (Postgres)** | Managed Postgres, Row Level Security, Auth for admin, edge functions, generous free tier. MCP connected. |
+| Enrichment compute | **Serverless functions + queue** | Async, retryable enrichment. Supabase Edge Functions or Cloudflare Workers/Queues. |
+| Hosting | **Cloudflare** (or Vercel) | Cloudflare MCP connected (Pages/Workers/Turnstile/R2). Vercel is the no-friction Next.js fallback. |
+| Anti-bot | **Cloudflare Turnstile** | Free, privacy-friendly CAPTCHA for the form. |
+| Analytics | **GA4 + server-side events** | Conversion tracking; add call tracking later. |
+| Email | Resend / Postmark | Transactional lead delivery + notifications. |
+
+> **Alternative considered:** Astro for the pure-content marketing site (excellent SEO,
+> very fast). Rejected for v1 because we need integrated forms + an admin dashboard;
+> Next.js does all three. Revisit if the content layer grows huge.
+>
+> **Open decision — Cloudflare vs Vercel hosting** (see §12).
+
+---
+
+## 7. Lead enrichment (summary)
+
+The buyer-side value driver. Full detail in [LEAD_ENRICHMENT.md](LEAD_ENRICHMENT.md).
+
+Inputs we capture: name, address, phone, email, service type, project details, timeline,
+budget signal, UTM/source.
+
+We append:
+- **Property:** assessed/estimated value, year built, sqft, lot, owner-occupied vs renter,
+  estimated equity.
+- **Person/area:** estimated household income (modeled), area demographics (Census ACS).
+- **Contact quality:** phone line type (mobile/landline/VoIP), validity, email deliverability.
+- **Intent/fraud:** timeline + budget from form, IP-to-address sanity, disposable-email
+  and duplicate detection.
+
+Output: a **lead score / grade (A/B/C)** plus a structured enrichment record delivered
+with the lead. Homeowner status + property age are especially predictive for electrical
+work (old homes → panel upgrades, rewiring).
+
+---
+
+## 8. SEO strategy (summary)
+
+The growth engine. Full detail in [SEO_STRATEGY.md](SEO_STRATEGY.md).
+
+- **Site architecture:** service pages × city pages, programmatically expanded, all
+  internally linked, with cost guides and FAQ content for high-intent long-tail.
+- **Target geography:** Wenatchee (hub) + East Wenatchee, Cashmere, Leavenworth, Chelan,
+  Manson, Entiat, Malaga, Rock Island, Quincy, Wenatchee Valley region.
+- **Technical:** fast LCP, mobile-first, clean URLs, sitemap/robots, canonicals,
+  structured data (LocalBusiness/Service, FAQPage, BreadcrumbList).
+- **E-E-A-T & trust:** transparent "how it works," real contact info, honest framing as a
+  matching service, genuine reviews only.
+- **Validate with Semrush** (MCP connected) for real volumes/difficulty before committing
+  page priorities.
+
+---
+
+## 9. Compliance (summary)
+
+Built in from day one — it protects the business *and* raises lead quality/buyer trust.
+Full detail in [COMPLIANCE.md](COMPLIANCE.md).
+
+- **TCPA express written consent** at the form (clear language that we share info with
+  service providers who may call/text, including via autodialer; checkbox + timestamp +
+  consent text stored with the lead).
+- **Transparency:** "How it works" clearly states we are a free matching/referral service
+  that connects homeowners with independent contractors and shares their request with them.
+- **Privacy Policy + Terms** covering data collection, enrichment, and sharing with pros.
+- **FCRA boundary:** enrichment data is for **marketing/matching only**, never for credit,
+  insurance, employment, or housing eligibility decisions. Modeled income is labeled as
+  *estimated*, never represented as verified.
+- **Opt-out / DNC** handling and PII security.
+
+---
+
+## 10. Roadmap
+
+### Phase 0 — Foundation (this) ✅
+Planning docs, brand direction, stack decision, repo set up.
+
+### Phase 1 — Marketing site MVP
+- Next.js scaffold, design system, layout/nav/footer.
+- Pages: Home, How it works, For contractors, About, Contact, Privacy, Terms.
+- Electrical service pages (top 5–6 services) + top 3–4 city pages.
+- Multi-step quote form → Supabase `leads` with consent capture + Turnstile + UTM.
+- Analytics + basic conversion tracking. Sitemap, robots, schema, metadata.
+- Deploy to staging.
+
+### Phase 2 — Enrichment pipeline
+- Provision Supabase schema (see DATA_MODEL).
+- Enrichment worker: property + ownership + value, phone/email validation, Census append.
+- Lead scoring v1. Store enrichment, surface on admin.
+
+### Phase 3 — Delivery + Admin
+- Admin dashboard (Supabase Auth, internal): leads, enrichment, scores, deliveries, revenue.
+- Buyer delivery: real-time email/webhook/CSV to the launch electrical buyer; log revenue.
+
+### Phase 4 — SEO scale
+- Programmatic service×city pages, cost guides, FAQ/blog content.
+- Full structured data, internal linking, Google Business Profile (service-area),
+  review collection, local citations/link building.
+
+### Phase 5 — Expand
+- Additional trades (plumbing, HVAC, roofing, …) on the same platform.
+- Multiple buyers, lead routing/auction, billing/invoicing, buyer portal.
+
+---
+
+## 11. KPIs
+
+| Category | Metric |
+| --- | --- |
+| Acquisition | Organic sessions, keyword rankings, indexed pages, GBP views |
+| Conversion | Form start rate, completion rate, leads/day, CPL |
+| Quality | Enrichment match rate, % A/B/C grade, % homeowner, spam rate |
+| Revenue | RPL, gross margin/lead, MRR, buyer retention |
+| Delivery | Speed-to-deliver (sec), delivery success rate |
+
+---
+
+## 12. Open decisions (need your input)
+
+1. **Site brand + domain** — go with `WenatcheeValleyPros.com`, or one of the alternates in §3?
+2. **Hosting** — Cloudflare (MCP connected, more setup) vs Vercel (fastest path for Next.js)?
+3. **Enrichment budget** — which paid data vendors are in budget for v1? (drives source
+   selection in LEAD_ENRICHMENT §). A lean v1 can start ~$50–200/mo.
+4. **Buyer delivery format** — what does the launch electrical buyer want? (email, CSV,
+   webhook into their CRM, shared spreadsheet?)
+5. **Reviews/social proof** — do we have any real reviews/testimonials to seed trust, or
+   start without and collect over time? (No fabricated reviews — compliance.)
