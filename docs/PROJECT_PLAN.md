@@ -278,10 +278,17 @@ Planning docs, brand direction, stack decision, repo set up.
 - ⬜ Buyer/admin provisioning UI (for now, create buyers + invite logins via SQL/MCP).
 - ⬜ Live login smoke test once real buyer + admin accounts exist.
 
-### Phase 4 — SEO scale
-- Programmatic service×city pages, cost guides, FAQ/blog content.
-- Full structured data, internal linking, Google Business Profile (service-area),
-  review collection, local citations/link building.
+### Phase 4 — SEO scale 🟢 (programmatic pages + cost guides shipped)
+- ✅ **Service×city matrix** (`/services/[service]/[city]`, 54 pages): localized intro,
+  city cost block, WA L&I permit context, county framing, city-specific cost FAQ,
+  hub-and-spoke internal links (parent service, parent city, sibling services, nearby
+  cities). Built to avoid thin/doorway content. Service + FAQ + Breadcrumb schema.
+- ✅ **Cost guides** (`/guides`, 4 cornerstone): panel upgrade, EV charger, rewire,
+  generator — itemized breakdown, price factors, FAQs, cross-links. FAQ schema.
+- ✅ Sitemap expanded (~84 URLs); nav + footer updated; service↔guide↔city interlinking.
+- ⬜ Validate keyword targeting/priorities (no Semrush on plan — use GKP/Ahrefs).
+- ⬜ Google Business Profile (service-area), review collection, local citations/links.
+- ⬜ More guides + FAQ/blog content as the content layer grows.
 
 ### Phase 5 — Expand
 - Additional trades (plumbing, HVAC, roofing, …) on the same platform.

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SITE } from "@/lib/site";
 import { SERVICES, getService } from "@/content/services";
 import { FEATURED_CITIES } from "@/content/cities";
+import { GUIDES } from "@/content/guides";
 import {
   pageMeta,
   serviceSchema,
@@ -47,6 +48,7 @@ export default async function ServicePage({
   const s = getService(service);
   if (!s) notFound();
 
+  const guide = GUIDES.find((g) => g.serviceSlug === s.slug);
   const path = `/services/${s.slug}`;
   const crumbs = [
     { name: "Home", path: "/" },
@@ -86,7 +88,17 @@ export default async function ServicePage({
                 </a>
               </div>
             </div>
-            <CostGuide low={s.costLow} high={s.costHigh} name={s.name} />
+            <div>
+              <CostGuide low={s.costLow} high={s.costHigh} name={s.name} />
+              {guide && (
+                <Link
+                  href={`/guides/${guide.slug}`}
+                  className="mt-3 inline-block text-sm font-semibold text-brand-700 hover:underline"
+                >
+                  Read the full {s.name.toLowerCase()} cost guide →
+                </Link>
+              )}
+            </div>
           </div>
         </Container>
       </section>
@@ -139,10 +151,13 @@ export default async function ServicePage({
           ))}
         </div>
         <p className="mt-10 text-center text-sm text-ink-600">
-          Available in{" "}
+          Get {s.name.toLowerCase()} in{" "}
           {FEATURED_CITIES.map((c, i) => (
             <span key={c.slug}>
-              <Link href={`/locations/${c.slug}`} className="text-brand-700 hover:underline">
+              <Link
+                href={`/services/${s.slug}/${c.slug}`}
+                className="text-brand-700 hover:underline"
+              >
                 {c.name}
               </Link>
               {i < FEATURED_CITIES.length - 1 ? ", " : ""}

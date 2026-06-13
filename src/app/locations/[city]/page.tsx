@@ -88,11 +88,11 @@ export default async function CityPage({
           {SERVICES.map((s) => (
             <Link
               key={s.slug}
-              href={`/services/${s.slug}`}
+              href={`/services/${s.slug}/${c.slug}`}
               className="group rounded-2xl border border-ink-200 bg-white p-6 shadow-sm transition-all hover:border-brand-300 hover:shadow-md"
             >
               <h3 className="font-display text-lg font-bold text-ink-900 group-hover:text-brand-700">
-                {s.name}
+                {s.name} in {c.name}
               </h3>
               <p className="mt-2 text-sm text-ink-600">{s.summary}</p>
             </Link>

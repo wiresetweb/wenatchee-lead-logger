@@ -38,8 +38,8 @@ export const NAV = [
   { label: "How it works", href: "/how-it-works" },
   { label: "Services", href: "/services" },
   { label: "Service area", href: "/locations" },
+  { label: "Cost guides", href: "/guides" },
   { label: "For contractors", href: "/for-contractors" },
-  { label: "About", href: "/about" },
 ] as const;
 
 /** Footer link groups. */
@@ -58,7 +58,7 @@ export const FOOTER_NAV = [
     links: [
       { label: "Electrical panel upgrade", href: "/services/electrical-panel-upgrade" },
       { label: "EV charger installation", href: "/services/ev-charger-installation" },
-      { label: "Electrical repair", href: "/services/electrical-repair" },
+      { label: "Cost guides", href: "/guides" },
       { label: "All services", href: "/services" },
     ],
   },

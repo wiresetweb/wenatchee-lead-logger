@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/site";
 import { SERVICES } from "@/content/services";
 import { CITIES } from "@/content/cities";
+import { GUIDES } from "@/content/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = SITE.url.replace(/\/$/, "");
@@ -12,6 +13,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/how-it-works",
     "/services",
     "/locations",
+    "/guides",
     "/for-contractors",
     "/about",
     "/contact",
@@ -34,10 +36,29 @@ export default function sitemap(): MetadataRoute.Sitemap {
       changeFrequency: "monthly",
       priority: 0.8,
     });
+    // Service × city programmatic pages.
+    for (const c of CITIES) {
+      entries.push({
+        url: `${base}/services/${s.slug}/${c.slug}`,
+        lastModified: now,
+        changeFrequency: "monthly",
+        priority: 0.6,
+      });
+    }
   }
+
   for (const c of CITIES) {
     entries.push({
       url: `${base}/locations/${c.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    });
+  }
+
+  for (const g of GUIDES) {
+    entries.push({
+      url: `${base}/guides/${g.slug}`,
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
