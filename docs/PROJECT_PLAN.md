@@ -271,10 +271,12 @@ Planning docs, brand direction, stack decision, repo set up.
 - ✅ **Buyer portal** (`/portal`, Supabase Auth + RLS): login, lead dashboard, lead detail
   with full contact + enrichment, outcome marking (contacted/quoted/won/lost). RLS
   isolation + buyer-scoped updates verified against the live DB.
-- ⬜ **Admin dashboard** (internal): all leads, enrichment, scores, deliveries, revenue —
-  still to build.
-- ⬜ Buyer provisioning UI (for now, create buyers + invite logins via SQL/MCP).
-- ⬜ Live login smoke test once a real buyer account exists.
+- ✅ **Admin dashboard** (`/admin`, allowlist-gated via `ADMIN_EMAILS`): overview with
+  grade mix + revenue + the $200 upgrade-trigger progress bar, all-leads table, lead
+  detail (lead + enrichment + deliveries), buyers list. Reads via service role after the
+  admin gate; fails closed.
+- ⬜ Buyer/admin provisioning UI (for now, create buyers + invite logins via SQL/MCP).
+- ⬜ Live login smoke test once real buyer + admin accounts exist.
 
 ### Phase 4 — SEO scale
 - Programmatic service×city pages, cost guides, FAQ/blog content.

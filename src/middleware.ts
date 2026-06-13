@@ -31,24 +31,29 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isLogin = pathname === "/portal/login";
+  // Decide which area's login this route belongs to.
+  const area = pathname.startsWith("/admin") ? "/admin" : "/portal";
+  const loginPath = `${area}/login`;
+  const isLogin = pathname === loginPath;
 
   if (!user && !isLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = "/portal/login";
+    url.pathname = loginPath;
+    url.search = "";
     url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
   if (user && isLogin) {
     const url = request.nextUrl.clone();
-    url.pathname = "/portal";
+    url.pathname = area;
     url.search = "";
     return NextResponse.redirect(url);
   }
+  // Admin-email authorization is enforced in the /admin layout (needs DB/env lookup).
 
   return response;
 }
 
 export const config = {
-  matcher: ["/portal/:path*"],
+  matcher: ["/portal/:path*", "/admin/:path*"],
 };

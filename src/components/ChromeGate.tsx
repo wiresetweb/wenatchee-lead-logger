@@ -5,6 +5,6 @@ import { usePathname } from "next/navigation";
 
 export function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  if (pathname.startsWith("/portal")) return null;
+  if (pathname.startsWith("/portal") || pathname.startsWith("/admin")) return null;
   return <>{children}</>;
 }
