@@ -54,7 +54,32 @@ The quote form works without a backend — leads are validated and logged with a
 until `SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are set, at which point they persist to
 the `leads` table.
 
-Scripts: `npm run build`, `npm run lint`, `npm run typecheck`.
+Scripts: `npm run build`, `npm run lint`, `npm run typecheck`, `npm test` (vitest).
+
+## Operating the platform
+
+**Environment variables** (set in Cloudflare → Worker → Settings → Variables; see
+`.env.example` for the full list):
+
+| Var | Needed for |
+| --- | --- |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Lead persistence, enrichment, delivery, admin reads (secret) |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Buyer/admin login (publishable; defaults shipped) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Buyer lead-notification emails |
+| `ADMIN_EMAILS` | Comma-separated allowlist for `/admin` |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Anti-bot on the quote form |
+| `CENSUS_API_KEY` | (optional) higher Census rate limits |
+
+**Create an admin:** add the email to `ADMIN_EMAILS`, then create a Supabase Auth user
+with that email (Supabase dashboard → Authentication → Add user). Sign in at `/admin`.
+
+**Onboard a buyer:** insert a `buyers` row, create a Supabase Auth user for them, then
+link the two in `buyer_users`. The buyer signs in at `/portal` and sees only leads
+delivered to them (RLS-enforced). A self-serve buyer-creation form is a future admin feature.
+
+**Lead flow:** quote form → `leads` (with TCPA consent) → background enrichment
+(`waitUntil`) → score/grade → routed to eligible buyers → `lead_deliveries` + email →
+visible in the buyer portal and `/admin`.
 
 ## Project structure (Phase 1)
 

@@ -13,9 +13,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SITE } from "./site";
 import { sendBuyerLeadEmail, type LeadEmailData } from "./email";
+import { buyerMatches } from "./delivery-match";
 
 const INTRO_FREE_COUNT = 5;
-const GRADE_RANK: Record<string, number> = { A: 3, B: 2, C: 1, reject: 0 };
 
 interface BuyerRow {
   id: string;
@@ -49,22 +49,6 @@ interface EnrichmentForDelivery {
   owner_occupied: boolean | null;
   area_median_income: number | null;
   need_flags: string[] | null;
-}
-
-function buyerMatches(buyer: BuyerRow, lead: LeadForDelivery, grade: string): boolean {
-  if (!buyer.active) return false;
-  if (buyer.trade !== lead.trade) return false;
-  if ((GRADE_RANK[grade] ?? 0) < (GRADE_RANK[buyer.min_grade] ?? 1)) return false;
-  if (
-    buyer.service_areas.length > 0 &&
-    !buyer.service_areas.some((a) => a.toLowerCase() === lead.city.toLowerCase())
-  ) {
-    return false;
-  }
-  if (buyer.service_types.length > 0 && !buyer.service_types.includes(lead.service_type)) {
-    return false;
-  }
-  return true;
 }
 
 export async function deliverLead(
