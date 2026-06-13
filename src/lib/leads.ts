@@ -14,8 +14,10 @@
 
 import { headers } from "next/headers";
 import { z } from "zod";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getServiceClient } from "./supabase/server";
 import { CONSENT_TEXT, CONSENT_VERSION } from "./consent";
+import { enrichLead } from "./enrichment";
 
 const leadSchema = z.object({
   serviceType: z.string().min(1, "Please choose a service."),
@@ -123,15 +125,38 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     return { ok: true };
   }
 
-  const { error } = await supabase.from("leads").insert(row);
-  if (error) {
-    console.error("[leads] insert failed:", error.message);
+  const { data: inserted, error } = await supabase
+    .from("leads")
+    .insert(row)
+    .select("id")
+    .single<{ id: string }>();
+  if (error || !inserted) {
+    console.error("[leads] insert failed:", error?.message);
     return {
       ok: false,
       message: "Something went wrong saving your request. Please try again or call us.",
     };
   }
 
-  // TODO (Phase 2): enqueue enrichment; (Phase 3): notify buyer by email.
+  // Run enrichment after the response is sent — never blocks the homeowner.
+  scheduleBackgroundTask(
+    enrichLead(inserted.id).catch((err) =>
+      console.error("[enrich] background enrichment failed:", err),
+    ),
+  );
+
+  // TODO (Phase 3): notify buyer by email + record lead_deliveries.
   return { ok: true };
+}
+
+/**
+ * Prefer Cloudflare's waitUntil (keeps the worker alive after the response);
+ * fall back to fire-and-forget outside the Workers runtime (e.g. `next start`).
+ */
+function scheduleBackgroundTask(task: Promise<unknown>): void {
+  try {
+    getCloudflareContext().ctx.waitUntil(task);
+  } catch {
+    void task;
+  }
 }

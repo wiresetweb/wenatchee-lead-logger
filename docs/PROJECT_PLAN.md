@@ -253,10 +253,14 @@ Planning docs, brand direction, stack decision, repo set up.
 - Analytics + basic conversion tracking. Sitemap, robots, schema, metadata.
 - Deploy to staging.
 
-### Phase 2 — Enrichment pipeline
-- Provision Supabase schema (see DATA_MODEL).
-- Enrichment worker: property + ownership + value, phone/email validation, Census append.
-- Lead scoring v1. Store enrichment, surface on admin.
+### Phase 2 — Enrichment pipeline 🟢 (core shipped)
+- ✅ Supabase project `cascade-home-connect` (btifsnnjuiwpbwvlzstc, us-west-1, free tier;
+  no pausing needed — mory's site was already inactive). Schema + RLS applied per DATA_MODEL.
+- ✅ Enrichment pipeline (free stack): dedupe, disposable-email + MX check (DoH),
+  Census geocode → tract/county/lat-lng, ACS append (area median income + home value),
+  scoring v1 (A/B/C), runs post-response via Cloudflare `waitUntil`.
+- ⬜ Phase 2b: county-assessor property/ownership source (columns ready, source pending).
+- ⬜ Live smoke test of external API calls post-deploy (sandbox egress blocked them locally).
 
 ### Phase 3 — Delivery + portals
 - **Real-time email** to the buyer on every new lead (their primary alert).

@@ -55,6 +55,11 @@ raw lead ─► validate & normalize ─► anti-fraud checks ─► append data
 > now using no-cost data, and wire in paid vendors once lead volume justifies the spend.
 > The paid options are listed below as the upgrade path — do not integrate them in v1.
 
+> **Implementation status (Phase 2):** the pipeline below is live in
+> `src/lib/enrichment/` — dedupe, disposable+MX email checks, Census geocode, ACS
+> area append, and scoring v1, scheduled via Cloudflare `waitUntil` after lead capture.
+> County-assessor property/ownership is Phase 2b (schema columns already exist).
+
 ### v1 — free stack (build this)
 | Source | Provides | How / caveats |
 | --- | --- | --- |
