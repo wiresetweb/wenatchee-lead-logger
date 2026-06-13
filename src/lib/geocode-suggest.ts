@@ -48,6 +48,7 @@ async function mapbox(q: string, token: string): Promise<AddressSuggestion[]> {
     features?: {
       id?: string;
       properties?: {
+        mapbox_id?: string;
         name?: string;
         place_formatted?: string;
         context?: {
@@ -67,7 +68,7 @@ async function mapbox(q: string, token: string): Promise<AddressSuggestion[]> {
     const state = p.context?.region?.region_code ?? "WA";
     if (!addressLine1 || !city) continue;
     out.push({
-      id: f.id ?? `${addressLine1}-${postalCode}`,
+      id: p.mapbox_id ?? f.id ?? `${addressLine1}-${postalCode}`,
       label: p.place_formatted ?? [addressLine1, city, postalCode].filter(Boolean).join(", "),
       addressLine1,
       city,
