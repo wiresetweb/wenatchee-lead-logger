@@ -5,12 +5,23 @@
  *
  * Field names vary by county, so we DON'T hardcode them — we request all fields and
  * detect the owner / year-built / value / land-use fields by matching attribute keys.
- * Every failure degrades gracefully to null, and the raw attributes are returned so we
- * can verify and tune field detection against real leads.
+ * Every failure degrades gracefully to null, and the lookup records a diagnostics trail
+ * (each URL tried, HTTP status, feature count) plus a probe of the server catalog when
+ * nothing matches — so a real lead reveals the correct endpoints when we can't test
+ * these hosts locally (sandbox egress is restricted).
  *
  * Sources: Chelan County Assessor parcels (maps.wenatcheewa.gov), Douglas County GIS
  * (gis.douglascountywa.net). Owner names are public records for taxation.
  */
+
+export interface ParcelAttempt {
+  url: string;
+  status?: number;
+  features?: number;
+  services?: string[];
+  folders?: string[];
+  error?: string;
+}
 
 export interface ParcelData {
   ownerName: string | null;
@@ -18,9 +29,11 @@ export interface ParcelData {
   assessedValue: number | null;
   situsAddress: string | null;
   landUse: string | null;
-  /** Which endpoint answered + the raw attributes, for tuning. */
+  /** Which endpoint answered (null if none did). */
   source: string | null;
   raw: Record<string, unknown> | null;
+  /** Diagnostics trail for tuning against real leads. */
+  attempts: ParcelAttempt[];
 }
 
 /** Candidate parcel layer URLs per county, tried in order until one returns a feature. */
@@ -36,11 +49,7 @@ const COUNTY_LAYERS: Record<string, string[]> = {
 };
 
 /** Detect a field value from an attributes object by matching the key name. */
-function pick(
-  attrs: Record<string, unknown>,
-  include: RegExp,
-  exclude?: RegExp,
-): unknown {
+function pick(attrs: Record<string, unknown>, include: RegExp, exclude?: RegExp): unknown {
   for (const [key, val] of Object.entries(attrs)) {
     if (val == null || val === "") continue;
     if (include.test(key) && (!exclude || !exclude.test(key))) return val;
@@ -60,21 +69,46 @@ function toStr(v: unknown): string | null {
   return s.length ? s : null;
 }
 
-async function queryLayer(url: string, lat: number, lng: number): Promise<Record<string, unknown> | null> {
+async function queryLayer(
+  url: string,
+  lat: number,
+  lng: number,
+  attempt: ParcelAttempt,
+): Promise<Record<string, unknown> | null> {
   const q =
     `${url}/query?geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326` +
     `&spatialRel=esriSpatialRelIntersects&outFields=*&returnGeometry=false&f=json`;
-  const res = await fetch(q, {
-    signal: AbortSignal.timeout(7000),
-    headers: { accept: "application/json" },
-  });
+  const res = await fetch(q, { signal: AbortSignal.timeout(7000), headers: { accept: "application/json" } });
+  attempt.status = res.status;
   if (!res.ok) return null;
   const data = (await res.json()) as {
     features?: { attributes?: Record<string, unknown> }[];
-    error?: unknown;
+    error?: { message?: string };
   };
+  if (data.error) attempt.error = data.error.message ?? "arcgis error";
+  attempt.features = data.features?.length ?? 0;
   if (data.error || !data.features?.length) return null;
   return data.features[0].attributes ?? null;
+}
+
+/** Probe the ArcGIS server catalog to discover available service names. */
+async function probeCatalog(base: string): Promise<ParcelAttempt> {
+  const url = `${base}?f=json`;
+  const attempt: ParcelAttempt = { url };
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000), headers: { accept: "application/json" } });
+    attempt.status = res.status;
+    if (!res.ok) return attempt;
+    const data = (await res.json()) as {
+      services?: { name?: string; type?: string }[];
+      folders?: string[];
+    };
+    attempt.services = (data.services ?? []).map((s) => `${s.name}/${s.type}`).slice(0, 40);
+    attempt.folders = (data.folders ?? []).slice(0, 40);
+  } catch (e) {
+    attempt.error = e instanceof Error ? e.message : String(e);
+  }
+  return attempt;
 }
 
 export async function lookupParcel(
@@ -85,35 +119,42 @@ export async function lookupParcel(
   const layers = county ? COUNTY_LAYERS[county] : undefined;
   if (!layers) return null;
 
+  const attempts: ParcelAttempt[] = [];
+  const empty = (): ParcelData => ({
+    ownerName: null, yearBuilt: null, assessedValue: null, situsAddress: null,
+    landUse: null, source: null, raw: null, attempts,
+  });
+
   for (const url of layers) {
+    const attempt: ParcelAttempt = { url };
+    attempts.push(attempt);
     try {
-      const attrs = await queryLayer(url, lat, lng);
+      const attrs = await queryLayer(url, lat, lng, attempt);
       if (!attrs) continue;
 
-      const ownerName = toStr(
-        pick(attrs, /owner|taxpayer/i, /addr|mail|city|state|zip|care|co_owner_addr/i),
-      );
-      const yearBuilt = toNumber(pick(attrs, /year.?built|yr.?blt|yearbuilt|actyrblt/i));
-      const assessedValue = toNumber(
-        pick(attrs, /assess|market.?val|total.?val|apprais|taxable.?val/i, /land.?val|year/i),
-      );
-      const situsAddress = toStr(pick(attrs, /situs|site.?addr|prop.?addr|location.?addr/i, /owner|mail/i));
-      const landUse = toStr(pick(attrs, /land.?use|use.?code|prop.?class|property.?type|use.?desc/i));
-
+      const ownerName = toStr(pick(attrs, /owner|taxpayer/i, /addr|mail|city|state|zip|care|co_owner_addr/i));
+      const yb = toNumber(pick(attrs, /year.?built|yr.?blt|yearbuilt|actyrblt/i));
       return {
         ownerName,
-        yearBuilt: yearBuilt && yearBuilt > 1700 && yearBuilt <= new Date().getFullYear() ? yearBuilt : null,
-        assessedValue,
-        situsAddress,
-        landUse,
+        yearBuilt: yb && yb > 1700 && yb <= new Date().getFullYear() ? yb : null,
+        assessedValue: toNumber(pick(attrs, /assess|market.?val|total.?val|apprais|taxable.?val/i, /land.?val|year/i)),
+        situsAddress: toStr(pick(attrs, /situs|site.?addr|prop.?addr|location.?addr/i, /owner|mail/i)),
+        landUse: toStr(pick(attrs, /land.?use|use.?code|prop.?class|property.?type|use.?desc/i)),
         source: url,
         raw: attrs,
+        attempts,
       };
-    } catch {
-      // try the next candidate URL
+    } catch (e) {
+      attempt.error = e instanceof Error ? e.message : String(e);
     }
   }
-  return null;
+
+  // Nothing matched — probe each distinct server catalog so the next lead reveals the
+  // real parcel service names.
+  const bases = [...new Set(layers.map((u) => u.replace(/\/rest\/services\/.*$/, "/rest/services")))];
+  for (const base of bases) attempts.push(await probeCatalog(base));
+
+  return empty();
 }
 
 /** Predicted-need flags from property age (electrical upsell hints). */

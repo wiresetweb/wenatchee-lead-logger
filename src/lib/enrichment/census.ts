@@ -69,6 +69,13 @@ export interface AcsTractData {
   medianHomeValue: number | null;
 }
 
+export interface AcsAttempt {
+  url: string;
+  status?: number;
+  error?: string;
+  values?: unknown;
+}
+
 /** ACS uses large negative sentinels for suppressed/unavailable values. */
 function acsNumber(v: string | null | undefined): number | null {
   if (v == null) return null;
@@ -80,6 +87,7 @@ export async function fetchAcsTractData(
   stateFips: string,
   countyFips: string,
   tract: string,
+  diag?: AcsAttempt[],
 ): Promise<AcsTractData | null> {
   const key = process.env.CENSUS_API_KEY;
   const vars = "B19013_001E,B25077_001E"; // median household income, median home value
@@ -98,19 +106,26 @@ export async function fetchAcsTractData(
     keyParam;
 
   for (const url of [tractUrl, countyUrl]) {
+    const attempt: AcsAttempt = { url: url.replace(/&key=[^&]*/, key ? "&key=***" : "") };
+    if (diag) diag.push(attempt);
     try {
       const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-      if (!res.ok) continue;
+      attempt.status = res.status;
+      if (!res.ok) {
+        attempt.error = await res.text().catch(() => "").then((t) => t.slice(0, 120));
+        continue;
+      }
       const rows = (await res.json()) as string[][];
       const values = rows?.[1]; // rows[0] = headers, rows[1] = values
+      attempt.values = values ?? rows;
       if (!values) continue;
       const income = acsNumber(values[0]);
       const homeValue = acsNumber(values[1]);
       if (income != null || homeValue != null) {
         return { medianHouseholdIncome: income, medianHomeValue: homeValue };
       }
-    } catch {
-      // try the next URL
+    } catch (e) {
+      attempt.error = e instanceof Error ? e.message : String(e);
     }
   }
   return null;

@@ -73,9 +73,11 @@ export async function enrichLead(leadId: string): Promise<void> {
   const emailDisposable = isDisposableEmail(lead.email);
 
   // 4. In parallel: ACS area data, county parcel lookup (owner + property), phone intel.
+  // acsDiag captures each ACS request (status/error) for tuning when we can't test live.
   const county = geo?.countyName.replace(/ County$/, "") ?? null;
+  const acsDiag: import("./census").AcsAttempt[] = [];
   const [acs, parcel, phone] = await Promise.all([
-    geo ? fetchAcsTractData(geo.stateFips, geo.countyFips, geo.tract) : Promise.resolve(null),
+    geo ? fetchAcsTractData(geo.stateFips, geo.countyFips, geo.tract, acsDiag) : Promise.resolve(null),
     geo ? lookupParcel(geo.lat, geo.lng, county) : Promise.resolve(null),
     lookupPhone(lead.phone),
   ]);
@@ -102,7 +104,7 @@ export async function enrichLead(leadId: string): Promise<void> {
   const allNeedFlags = [...new Set([...needFlagsBase, ...needFlags])];
 
   const sources = ["census_geocoder", "acs5", "dns_mx"];
-  if (parcel) sources.push(`parcel:${county}`);
+  if (parcel?.source) sources.push(`parcel:${county}`);
   if (phone) sources.push("twilio_lookup");
 
   const { error: upsertError } = await supabase.from("lead_enrichment").upsert({
@@ -129,6 +131,7 @@ export async function enrichLead(leadId: string): Promise<void> {
       parcel: parcel ? { ...parcel, ownerMatch } : null,
       phone,
       sources,
+      diagnostics: { acs: acsDiag, parcel: parcel?.attempts ?? null },
     },
     provider_costs: { total_usd: phone ? 0.008 : 0 },
   });
