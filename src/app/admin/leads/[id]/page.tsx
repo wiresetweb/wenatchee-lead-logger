@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getAdminServiceClient } from "@/lib/admin";
+import { DeleteLeadButton } from "@/components/admin/DeleteLeadButton";
 
 export const dynamic = "force-dynamic";
 
@@ -96,9 +97,17 @@ export default async function AdminLeadDetail({
       <Link href="/admin/leads" className="text-sm font-medium text-brand-700 hover:underline">
         ← All leads
       </Link>
-      <h1 className="mt-3 font-display text-2xl font-bold text-ink-900">
-        {fmt(lead.full_name)}
-      </h1>
+      <div className="mt-3 flex items-center justify-between gap-4">
+        <h1 className="font-display text-2xl font-bold text-ink-900">
+          {fmt(lead.full_name)}
+        </h1>
+        <DeleteLeadButton
+          id={id}
+          name={typeof lead.full_name === "string" ? lead.full_name : undefined}
+          redirectTo="/admin/leads"
+          label="Delete lead"
+        />
+      </div>
 
       <Section title="Lead">
         <Table fields={leadFields} data={lead} fmt={fmt} />

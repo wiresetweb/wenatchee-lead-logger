@@ -18,6 +18,7 @@ import { submitLead, type LeadInput } from "@/lib/leads";
 import { CONSENT_TEXT, sameDayContactLine } from "@/lib/consent";
 import { Button } from "@/components/ui";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 
 type Values = {
   serviceType: string;
@@ -274,11 +275,23 @@ export function QuoteForm({
                 />
               </Field>
               <Field label="Street address (optional — helps your pro quote faster)" error={errors.addressLine1}>
-                <input
-                  className="form-input"
-                  autoComplete="address-line1"
+                <AddressAutocomplete
                   value={values.addressLine1}
-                  onChange={(e) => set("addressLine1", e.target.value)}
+                  onChange={(v) => set("addressLine1", v)}
+                  onSelect={({ addressLine1, city, postalCode }) => {
+                    setValues((v) => ({
+                      ...v,
+                      addressLine1,
+                      city: city || v.city,
+                      postalCode: postalCode || v.postalCode,
+                    }));
+                    setErrors((e) => {
+                      const rest = { ...e };
+                      delete rest.city;
+                      delete rest.addressLine1;
+                      return rest;
+                    });
+                  }}
                 />
               </Field>
               <div className="grid grid-cols-2 gap-3">

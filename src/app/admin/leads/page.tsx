@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getAdminServiceClient } from "@/lib/admin";
+import { DeleteLeadButton } from "@/components/admin/DeleteLeadButton";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +62,7 @@ export default async function AdminLeadsPage() {
                 <th className="hidden px-4 py-3 font-medium sm:table-cell">City</th>
                 <th className="px-4 py-3 font-medium">Status</th>
                 <th className="hidden px-4 py-3 font-medium md:table-cell">Created</th>
+                <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-100">
@@ -97,6 +99,9 @@ export default async function AdminLeadsPage() {
                       month: "short",
                       day: "numeric",
                     })}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <DeleteLeadButton id={l.id} name={l.full_name} />
                   </td>
                 </tr>
               ))}
