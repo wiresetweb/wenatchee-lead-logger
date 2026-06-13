@@ -36,9 +36,9 @@ export const SITE = {
 /** Primary nav shown in the header. */
 export const NAV = [
   { label: "How it works", href: "/how-it-works" },
-  { label: "Services", href: "/services" },
-  { label: "Service area", href: "/locations" },
+  { label: "Electricians", href: "/electricians" },
   { label: "Cost guides", href: "/guides" },
+  { label: "Blog", href: "/blog" },
   { label: "For contractors", href: "/for-contractors" },
 ] as const;
 

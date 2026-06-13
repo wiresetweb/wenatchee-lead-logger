@@ -3,6 +3,7 @@ import { SITE } from "@/lib/site";
 import { SERVICES } from "@/content/services";
 import { CITIES } from "@/content/cities";
 import { GUIDES } from "@/content/guides";
+import { POSTS } from "@/content/blog";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = SITE.url.replace(/\/$/, "");
@@ -10,10 +11,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const staticPaths = [
     "",
+    "/electricians",
     "/how-it-works",
     "/services",
     "/locations",
     "/guides",
+    "/blog",
     "/for-contractors",
     "/about",
     "/contact",
@@ -62,6 +65,15 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: "monthly",
       priority: 0.7,
+    });
+  }
+
+  for (const p of POSTS) {
+    entries.push({
+      url: `${base}/blog/${p.slug}`,
+      lastModified: new Date(p.date),
+      changeFrequency: "yearly",
+      priority: 0.6,
     });
   }
 

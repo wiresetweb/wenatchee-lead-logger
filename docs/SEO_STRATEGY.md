@@ -177,6 +177,51 @@ Build a deliberate hub-and-spoke link graph — it's the single biggest on-site 
 
 ---
 
+## 8b. Multi-trade architecture (live)
+
+The brand is trade-agnostic. The site is structured so new trades slot in without a
+rebuild:
+
+- **`/` homepage** = a **trade selector** (brand-level hero + cards for each trade).
+  Targets broad "find a local pro / home services Wenatchee" intent and routes visitors
+  to the right trade hub.
+- **`/electricians`** = the **electrical trade hub** (hero + embedded quote form + services
+  + cost guides + cities). Targets "electricians Wenatchee Valley" head terms.
+- **`/trades/{trade}`** = lightweight **"coming soon"** pages for not-yet-live trades
+  (plumbing, HVAC, roofing, landscaping). **noindex** + excluded from sitemap so we never
+  ship thin content for services we can't fulfill. They route demand to electrical.
+- Electrical detail pages (`/services/*`, `/services/{service}/{city}`, `/guides/*`,
+  `/locations/*`) hang off the electrical hub. When trade #2 launches, the same pattern
+  repeats under its hub.
+
+## 8c. Content & blog engine (live)
+
+Goal: build topical authority and capture top-of-funnel "questions" searches that feed the
+money pages. Content lives in `src/content/blog.ts` (typed blocks) and renders at `/blog`.
+
+**Editorial principles**
+- Every article is **genuinely useful and locally framed** (WA L&I permits, older
+  Wenatchee/Cashmere/Leavenworth homes, local cost ranges) — never thin or generic.
+- Each post **interlinks** to the relevant service, cost guide, and/or city page, and ends
+  with a quote CTA. Articles emit `Article` + `FAQPage` + `BreadcrumbList` schema.
+- Target one clear informational query per post; answer it directly in the first paragraph.
+
+**Published (cornerstone set)**
+1. Do You Need a Permit for Electrical Work in Washington? → panel upgrade, electricians
+2. 7 Signs Your Home Needs an Electrical Panel Upgrade → panel upgrade service + guide
+3. How to Choose a Licensed Electrician in the Wenatchee Valley → how-it-works, electricians
+4. Is Knob-and-Tube Wiring Safe? (older Wenatchee homes) → rewiring service + guide
+5. Thinking About an EV Charger? → EV charger service + guide
+
+**Backlog (next, by intent)**
+- "How many amps does my home need?" · "What size generator do I need?" ·
+  "Cost to install recessed lighting" · "Why does my breaker keep tripping?" ·
+  "Hot tub electrical requirements in WA" · seasonal: "Winter power-outage prep in the valley"
+- Per-city angles where they add real value (e.g., "Electrical permits in Chelan County").
+
+**Cadence:** aim for 2–4 posts/month; refresh cost figures and cornerstone posts
+periodically. Prioritize posts that link to the highest-margin services (panel, rewire, EV).
+
 ## 9. Measurement
 
 Search Console (queries, impressions, CTR, position), GA4 (organic sessions → form

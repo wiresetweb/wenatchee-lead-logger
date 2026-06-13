@@ -69,7 +69,13 @@ const STEP_META = [
   { title: "Last step — where should your quote go?", hint: "Your info goes to your matched pro. Never sold to spam lists." },
 ] as const;
 
-export function QuoteForm({ defaultService = "" }: { defaultService?: string }) {
+export function QuoteForm({
+  defaultService = "",
+  trade = "electrical",
+}: {
+  defaultService?: string;
+  trade?: string;
+}) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [values, setValues] = useState<Values>({ ...initial, serviceType: defaultService });
@@ -138,7 +144,7 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
     try {
       const result = await submitLead({
         serviceType: values.serviceType,
-        trade: "electrical",
+        trade,
         projectDetails: values.projectDetails,
         timeline: values.timeline || undefined,
         fullName: values.fullName,
