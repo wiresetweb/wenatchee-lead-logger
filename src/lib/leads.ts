@@ -137,28 +137,37 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     return { ok: true };
   }
 
-  const { data: inserted, error } = await supabase
-    .from("leads")
-    .insert(row)
-    .select("id")
-    .single<{ id: string }>();
-  if (error || !inserted) {
-    console.error("[leads] insert failed:", error?.message);
+  // Wrap the DB work: a thrown fetch error (bad header/URL on Workers, network blip)
+  // must surface as a friendly message, never a hard crash for the homeowner.
+  try {
+    const { data: inserted, error } = await supabase
+      .from("leads")
+      .insert(row)
+      .select("id")
+      .single<{ id: string }>();
+    if (error || !inserted) {
+      console.error("[leads] insert failed:", error?.message);
+      return {
+        ok: false,
+        message: "Something went wrong saving your request. Please try again or call us.",
+      };
+    }
+
+    // Run enrichment + delivery after the response is sent — never blocks the homeowner.
+    scheduleBackgroundTask(
+      enrichLead(inserted.id).catch((err) =>
+        console.error("[enrich] background enrichment failed:", err),
+      ),
+    );
+
+    return { ok: true };
+  } catch (err) {
+    console.error("[leads] unexpected error during insert:", err);
     return {
       ok: false,
       message: "Something went wrong saving your request. Please try again or call us.",
     };
   }
-
-  // Run enrichment after the response is sent — never blocks the homeowner.
-  scheduleBackgroundTask(
-    enrichLead(inserted.id).catch((err) =>
-      console.error("[enrich] background enrichment failed:", err),
-    ),
-  );
-
-  // TODO (Phase 3): notify buyer by email + record lead_deliveries.
-  return { ok: true };
 }
 
 /**
