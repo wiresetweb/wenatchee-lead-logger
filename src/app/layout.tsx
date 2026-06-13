@@ -26,6 +26,20 @@ export const metadata: Metadata = {
   description: SITE.description,
   applicationName: SITE.name,
   robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    url: SITE.url,
+    title: `${SITE.name} | Free quotes from trusted local pros`,
+    description: SITE.description,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: SITE.name }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE.name} | Free quotes from trusted local pros`,
+    description: SITE.description,
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

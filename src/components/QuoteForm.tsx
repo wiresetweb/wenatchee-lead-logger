@@ -17,6 +17,7 @@ import { SERVICES } from "@/content/services";
 import { submitLead, type LeadInput } from "@/lib/leads";
 import { CONSENT_TEXT, sameDayContactLine } from "@/lib/consent";
 import { Button } from "@/components/ui";
+import { TurnstileWidget } from "@/components/TurnstileWidget";
 
 type Values = {
   serviceType: string;
@@ -74,6 +75,7 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
   const [values, setValues] = useState<Values>({ ...initial, serviceType: defaultService });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   // Same-day promise depends on the current time, which can differ between server and
   // client. useSyncExternalStore renders "" on the server and the real line on the
@@ -147,6 +149,7 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
         postalCode: values.postalCode,
         consent: values.consent as true,
         company: values.company,
+        turnstileToken: turnstileToken ?? undefined,
         ...readAttribution(),
       });
       if (result.ok) {
@@ -323,6 +326,8 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
                   onChange={(e) => set("email", e.target.value)}
                 />
               </Field>
+
+              <TurnstileWidget onToken={setTurnstileToken} />
 
               <label className="flex items-start gap-3 rounded-xl bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
                 <input

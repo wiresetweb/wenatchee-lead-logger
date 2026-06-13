@@ -18,6 +18,7 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { getServiceClient } from "./supabase/server";
 import { CONSENT_TEXT, CONSENT_VERSION } from "./consent";
 import { enrichLead } from "./enrichment";
+import { verifyTurnstile } from "./turnstile";
 
 const leadSchema = z.object({
   serviceType: z.string().min(1, "Please choose a service."),
@@ -37,6 +38,8 @@ const leadSchema = z.object({
   consent: z.literal(true, { message: "Consent is required to continue." }),
   // Honeypot — must be empty. Bots fill it.
   company: z.string().max(0).optional().default(""),
+  // Cloudflare Turnstile token (verified server-side when configured).
+  turnstileToken: z.string().optional(),
   // Attribution (hidden fields)
   utmSource: z.string().optional(),
   utmMedium: z.string().optional(),
@@ -87,6 +90,15 @@ export async function submitLead(input: LeadInput): Promise<LeadResult> {
     hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ??
     null;
   const userAgent = hdrs.get("user-agent") ?? null;
+
+  // Anti-bot: verify Turnstile when configured (no-op otherwise).
+  const humanVerified = await verifyTurnstile(data.turnstileToken, ip);
+  if (!humanVerified) {
+    return {
+      ok: false,
+      errors: { form: "Please complete the verification challenge and try again." },
+    };
+  }
 
   const row = {
     status: "new",
