@@ -4,8 +4,9 @@
  * Multi-step quote form — the core conversion surface.
  * Step 1: service + timeline · Step 2: project + address · Step 3: contact + consent.
  *
- * Captures UTM/landing attribution (client-side, no Suspense needed), shows the
- * same-day-vs-next-business-day promise, includes a honeypot, and submits via the
+ * UX notes: services are big tappable chips (faster + more fun than a dropdown),
+ * each step has momentum microcopy, and the data-sensitive steps carry reassurance
+ * lines. Captures UTM/landing attribution, honeypot, TCPA consent; submits via the
  * `submitLead` server action. See docs/COMPLIANCE.md and docs/DATA_MODEL.md.
  */
 
@@ -59,6 +60,14 @@ const FIELD_STEP: Record<string, number> = {
   consent: 3,
 };
 
+const OTHER_SERVICE = "Other electrical work";
+
+const STEP_META = [
+  { title: "What needs doing?", hint: "Tap the closest match — a pro will fine-tune the details with you." },
+  { title: "Where's the project?", hint: "We only use this to match you with a pro who covers your neighborhood." },
+  { title: "Last step — where should your quote go?", hint: "Your info goes to your matched pro. Never sold to spam lists." },
+] as const;
+
 export function QuoteForm({ defaultService = "" }: { defaultService?: string }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -101,13 +110,13 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
 
   function validateStep(s: number): boolean {
     const e: Record<string, string> = {};
-    if (s === 1 && !values.serviceType) e.serviceType = "Please choose a service.";
-    if (s === 2 && values.city.trim().length < 2) e.city = "Please enter your city.";
+    if (s === 1 && !values.serviceType) e.serviceType = "Pick the closest match — you can explain more next.";
+    if (s === 2 && values.city.trim().length < 2) e.city = "Just your city — so we match a pro who covers it.";
     if (s === 3) {
       if (values.fullName.trim().length < 2) e.fullName = "Please enter your name.";
       if (values.phone.replace(/\D/g, "").length < 7) e.phone = "Enter a valid phone number.";
       if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) e.email = "Enter a valid email.";
-      if (!values.consent) e.consent = "Consent is required to continue.";
+      if (!values.consent) e.consent = "Please check the box so your pro is allowed to contact you.";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -152,24 +161,33 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
         setErrors({ form: result.message });
       }
     } catch {
-      setErrors({ form: "Something went wrong. Please try again or call us." });
+      setErrors({ form: "Something went wrong. Please try again or give us a call." });
     } finally {
       setSubmitting(false);
     }
   }
 
+  const meta = STEP_META[step - 1];
+
   return (
-    <div className="rounded-2xl border border-ink-200 bg-white p-6 shadow-md sm:p-8">
+    <div className="rounded-3xl border border-ink-200 bg-white p-6 shadow-xl sm:p-8">
       {/* Progress */}
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <p className="text-sm font-semibold text-brand-700">
+          Step {step} of 3 <span className="font-normal text-ink-400">· about a minute</span>
+        </p>
+        {step === 3 && <p className="text-sm font-medium text-ink-500">Almost there 🎉</p>}
+      </div>
       <div className="mb-6 flex items-center gap-2" aria-hidden>
         {[1, 2, 3].map((s) => (
           <div
             key={s}
-            className={`h-1.5 flex-1 rounded-full ${s <= step ? "bg-brand-600" : "bg-ink-200"}`}
+            className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+              s <= step ? "bg-brand-600" : "bg-ink-200"
+            }`}
           />
         ))}
       </div>
-      <p className="mb-1 text-sm font-medium text-brand-700">Step {step} of 3</p>
 
       <form onSubmit={onSubmit} noValidate>
         {/* Honeypot: visually hidden, off-screen, not announced. */}
@@ -185,69 +203,68 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
           </label>
         </div>
 
-        {step === 1 && (
-          <fieldset>
-            <legend className="font-display text-xl font-bold text-ink-900">
-              What do you need help with?
-            </legend>
-            <div className="mt-4 space-y-4">
-              <Field label="Service" error={errors.serviceType}>
-                <select
-                  className="form-input"
-                  value={values.serviceType}
-                  onChange={(e) => set("serviceType", e.target.value)}
-                >
-                  <option value="">Choose a service…</option>
+        <fieldset>
+          <legend className="font-display text-xl font-bold text-ink-900">{meta.title}</legend>
+          <p className="mt-1.5 text-sm text-ink-500">{meta.hint}</p>
+
+          {step === 1 && (
+            <div className="mt-5 space-y-5">
+              <div>
+                <div className="grid grid-cols-2 gap-2">
                   {SERVICES.map((s) => (
-                    <option key={s.slug} value={s.formLabel}>
-                      {s.formLabel}
-                    </option>
+                    <Chip
+                      key={s.slug}
+                      selected={values.serviceType === s.formLabel}
+                      onClick={() => set("serviceType", s.formLabel)}
+                    >
+                      {s.name}
+                    </Chip>
                   ))}
-                  <option value="Other electrical work">Other electrical work</option>
-                </select>
-              </Field>
-              <Field label="When do you need it done?" error={errors.timeline}>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <Chip
+                    selected={values.serviceType === OTHER_SERVICE}
+                    onClick={() => set("serviceType", OTHER_SERVICE)}
+                  >
+                    Something else
+                  </Chip>
+                </div>
+                {errors.serviceType && (
+                  <p className="mt-2 text-sm text-red-600">{errors.serviceType}</p>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 text-sm font-medium text-ink-800">How soon?</p>
+                <div className="grid grid-cols-3 gap-2">
                   {[
-                    { v: "asap", l: "As soon as possible" },
-                    { v: "this_month", l: "Within a month" },
-                    { v: "researching", l: "Just researching" },
+                    { v: "asap", l: "ASAP" },
+                    { v: "this_month", l: "This month" },
+                    { v: "researching", l: "Just looking" },
                   ].map((opt) => (
-                    <button
-                      type="button"
+                    <Chip
                       key={opt.v}
+                      selected={values.timeline === opt.v}
                       onClick={() => set("timeline", opt.v as Values["timeline"])}
-                      className={`rounded-lg border px-3 py-2.5 text-sm font-medium transition-colors ${
-                        values.timeline === opt.v
-                          ? "border-brand-600 bg-brand-50 text-brand-700"
-                          : "border-ink-200 text-ink-700 hover:border-brand-300"
-                      }`}
                     >
                       {opt.l}
-                    </button>
+                    </Chip>
                   ))}
                 </div>
-              </Field>
+              </div>
             </div>
-          </fieldset>
-        )}
+          )}
 
-        {step === 2 && (
-          <fieldset>
-            <legend className="font-display text-xl font-bold text-ink-900">
-              Tell us about the project
-            </legend>
-            <div className="mt-4 space-y-4">
-              <Field label="Project details (optional)" error={errors.projectDetails}>
+          {step === 2 && (
+            <div className="mt-5 space-y-4">
+              <Field label="What's going on? (optional)" error={errors.projectDetails}>
                 <textarea
                   className="form-input"
                   rows={3}
-                  placeholder="e.g. Panel keeps tripping; want to add an EV charger."
+                  placeholder="e.g. Breaker trips every time we run the microwave and toaster together…"
                   value={values.projectDetails}
                   onChange={(e) => set("projectDetails", e.target.value)}
                 />
               </Field>
-              <Field label="Street address (optional)" error={errors.addressLine1}>
+              <Field label="Street address (optional — helps your pro quote faster)" error={errors.addressLine1}>
                 <input
                   className="form-input"
                   autoComplete="address-line1"
@@ -260,11 +277,12 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
                   <input
                     className="form-input"
                     autoComplete="address-level2"
+                    placeholder="Wenatchee"
                     value={values.city}
                     onChange={(e) => set("city", e.target.value)}
                   />
                 </Field>
-                <Field label="ZIP" error={errors.postalCode}>
+                <Field label="ZIP (optional)" error={errors.postalCode}>
                   <input
                     className="form-input"
                     inputMode="numeric"
@@ -275,15 +293,10 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
                 </Field>
               </div>
             </div>
-          </fieldset>
-        )}
+          )}
 
-        {step === 3 && (
-          <fieldset>
-            <legend className="font-display text-xl font-bold text-ink-900">
-              Where should your free quote go?
-            </legend>
-            <div className="mt-4 space-y-4">
+          {step === 3 && (
+            <div className="mt-5 space-y-4">
               <Field label="Full name" error={errors.fullName}>
                 <input
                   className="form-input"
@@ -292,7 +305,7 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
                   onChange={(e) => set("fullName", e.target.value)}
                 />
               </Field>
-              <Field label="Phone" error={errors.phone}>
+              <Field label="Phone — this is how your pro reaches you" error={errors.phone}>
                 <input
                   className="form-input"
                   type="tel"
@@ -311,7 +324,7 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
                 />
               </Field>
 
-              <label className="flex items-start gap-3 rounded-lg bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
+              <label className="flex items-start gap-3 rounded-xl bg-ink-50 p-3 text-xs leading-relaxed text-ink-600">
                 <input
                   type="checkbox"
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-ink-300 text-brand-600 focus:ring-brand-600"
@@ -319,10 +332,7 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
                   onChange={(e) => set("consent", e.target.checked)}
                 />
                 <span>
-                  {CONSENT_TEXT.replace(
-                    "See the Privacy Policy and Terms.",
-                    "",
-                  )}
+                  {CONSENT_TEXT.replace("See the Privacy Policy and Terms.", "")}
                   See our{" "}
                   <Link href="/privacy" className="font-medium text-brand-700 underline">
                     Privacy Policy
@@ -336,8 +346,8 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
               </label>
               {errors.consent && <p className="text-sm text-red-600">{errors.consent}</p>}
             </div>
-          </fieldset>
-        )}
+          )}
+        </fieldset>
 
         {errors.form && (
           <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{errors.form}</p>
@@ -353,11 +363,11 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
           )}
           {step < 3 ? (
             <Button type="button" size="lg" onClick={next}>
-              Continue →
+              {step === 1 ? "Next: location →" : "Next: your quote →"}
             </Button>
           ) : (
             <Button type="submit" size="lg" disabled={submitting}>
-              {submitting ? "Sending…" : "Get my free quote"}
+              {submitting ? "Matching you…" : "Get my free quote"}
             </Button>
           )}
         </div>
@@ -367,6 +377,31 @@ export function QuoteForm({ defaultService = "" }: { defaultService?: string }) 
         )}
       </form>
     </div>
+  );
+}
+
+function Chip({
+  selected,
+  onClick,
+  children,
+}: {
+  selected: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`rounded-xl border px-3 py-2.5 text-sm font-medium transition-all ${
+        selected
+          ? "border-brand-600 bg-brand-50 text-brand-700 shadow-sm ring-1 ring-inset ring-brand-600"
+          : "border-ink-200 text-ink-700 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-sm"
+      }`}
+    >
+      {children}
+    </button>
   );
 }
 

@@ -3,6 +3,7 @@ import { SITE } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { Container } from "@/components/ui";
 import { CityGrid, CtaBand } from "@/components/sections";
+import { Photo } from "@/components/Photo";
 
 export const metadata: Metadata = pageMeta({
   title: "Service area",
@@ -13,14 +14,23 @@ export const metadata: Metadata = pageMeta({
 export default function LocationsHubPage() {
   return (
     <>
-      <section className="bg-gradient-to-b from-brand-50 to-white py-12 sm:py-16">
-        <Container className="max-w-2xl text-center">
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">
-            Where we work
+      <section className="relative isolate overflow-hidden bg-ink-900">
+        <Photo
+          name="enchantments"
+          alt="An alpine lake in the Enchantments above Leavenworth"
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-10 h-full w-full object-cover object-[50%_60%]"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-t from-ink-950/80 via-ink-950/40 to-ink-950/30" />
+        <Container className="flex min-h-[320px] max-w-2xl flex-col items-center justify-end pb-12 pt-24 text-center sm:min-h-[380px]">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
+            This valley is home
           </h1>
-          <p className="mt-3 text-lg text-ink-600">
-            Based in Wenatchee, we connect homeowners across the valley — in Chelan, Douglas,
-            and Grant counties — with trusted local pros.
+          <p className="mt-4 text-lg text-ink-100">
+            From downtown Wenatchee to the trailheads above Leavenworth — we connect
+            homeowners across Chelan, Douglas, and Grant counties with pros who live and
+            work right here.
           </p>
         </Container>
       </section>

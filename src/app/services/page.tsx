@@ -3,6 +3,7 @@ import { SITE } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { Container } from "@/components/ui";
 import { ServiceGrid, CtaBand } from "@/components/sections";
+import { Photo } from "@/components/Photo";
 
 export const metadata: Metadata = pageMeta({
   title: "Electrical services",
@@ -13,14 +14,22 @@ export const metadata: Metadata = pageMeta({
 export default function ServicesHubPage() {
   return (
     <>
-      <section className="bg-gradient-to-b from-brand-50 to-white py-12 sm:py-16">
-        <Container className="max-w-2xl text-center">
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">
-            Electrical services in {SITE.regionShort}
+      <section className="relative isolate overflow-hidden bg-ink-900">
+        <Photo
+          name="doorknob-install"
+          alt="A pro's hands at work with a compact driver"
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-10 h-full w-full object-cover opacity-40"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-ink-950/70 to-ink-950/80" />
+        <Container className="max-w-2xl py-16 text-center sm:py-20">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-5xl">
+            Whatever the job, we know the pro
           </h1>
-          <p className="mt-3 text-lg text-ink-600">
-            We connect you with trusted local electricians for everything from a quick repair
-            to a whole-home rewire. Pick a service to learn more, or get a free quote.
+          <p className="mt-4 text-lg text-ink-100">
+            Quick repair or whole-home rewire — pick your project and we&apos;ll match you
+            with a local electrician in {SITE.regionShort} who does it every day.
           </p>
         </Container>
       </section>

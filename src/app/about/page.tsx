@@ -3,6 +3,7 @@ import { SITE } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { Container, H2, Lead } from "@/components/ui";
 import { CtaBand } from "@/components/sections";
+import { Photo } from "@/components/Photo";
 
 export const metadata: Metadata = pageMeta({
   title: "About",
@@ -24,7 +25,14 @@ export default function AboutPage() {
         </Container>
       </section>
 
-      <Container className="max-w-3xl py-14 sm:py-20">
+      <Container className="grid max-w-5xl items-start gap-12 py-14 sm:py-20 lg:grid-cols-[1fr_1.4fr]">
+        <Photo
+          name="pavers"
+          alt="Craftsmen setting stone pavers by hand"
+          sizes="(min-width: 1024px) 35vw, 100vw"
+          className="hidden aspect-[3/4] w-full rounded-3xl object-cover shadow-xl lg:block"
+        />
+        <div>
         <H2>Our story</H2>
         <Lead className="mt-4">
           Finding a reliable contractor in the Wenatchee Valley shouldn&apos;t mean cold-calling
@@ -43,6 +51,7 @@ export default function AboutPage() {
           believe a good match is good for everyone — you get a fair quote without the hassle,
           and great local pros get connected with customers who need them.
         </Lead>
+        </div>
       </Container>
 
       <CtaBand />

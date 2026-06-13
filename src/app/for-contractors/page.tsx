@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SITE } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { Container, Section, H2, Lead, Card, ButtonLink } from "@/components/ui";
+import { Photo } from "@/components/Photo";
 
 export const metadata: Metadata = pageMeta({
   title: "For contractors — get local leads",
@@ -31,16 +32,24 @@ const benefits = [
 export default function ForContractorsPage() {
   return (
     <>
-      <section className="bg-ink-900">
-        <Container className="py-16 sm:py-20">
+      <section className="relative isolate overflow-hidden bg-ink-900">
+        <Photo
+          name="toolbag"
+          alt="An electrician's loaded tool bag beside the work van"
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-10 h-full w-full object-cover opacity-30"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink-950/90 via-ink-950/70 to-transparent" />
+        <Container className="py-16 sm:py-24">
           <div className="max-w-2xl">
             <p className="text-sm font-semibold uppercase tracking-wide text-brand-300">
               For contractors
             </p>
             <h1 className="mt-3 font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
-              Exclusive local leads, enriched and ready to call
+              Leads that show up knowing who you&apos;re calling
             </h1>
-            <p className="mt-5 text-lg text-ink-200">
+            <p className="mt-5 text-lg leading-relaxed text-ink-200">
               Stop chasing tire-kickers from national directories. Get high-intent homeowners
               in {SITE.regionName} — delivered to your inbox and dashboard the moment they ask
               for a quote, with the homeowner and property details that help you win the job.
