@@ -1,7 +1,7 @@
 /**
  * Lead scoring v1 — transparent rule-based model (docs/LEAD_ENRICHMENT.md §4).
- * Free-stack signals only; property/ownership signals join in Phase 2b when the
- * county-assessor source lands. Recalibrate against buyer outcomes once we have them.
+ * Owner-occupancy (from county parcel data) is the strongest signal; phone line-type
+ * applies when the paid Twilio lookup is enabled. Recalibrate against buyer outcomes.
  */
 
 export interface ScoreInput {
@@ -13,6 +13,10 @@ export interface ScoreInput {
   emailDisposable: boolean;
   isDuplicate: boolean;
   areaMedianIncome: number | null;
+  /** From owner-name match: true = owner, false = likely renter, null = unknown. */
+  ownerOccupied: boolean | null;
+  /** mobile | landline | voip | null (paid lookup disabled). */
+  phoneLineType: string | null;
 }
 
 export interface ScoreResult {
@@ -22,7 +26,6 @@ export interface ScoreResult {
   fraudFlags: string[];
 }
 
-/** High-ticket electrical work scores higher (more valuable to the buyer). */
 const HIGH_TICKET = /panel|rewir|generator/i;
 const MID_TICKET = /ev charger/i;
 
@@ -32,36 +35,45 @@ export function scoreLead(input: ScoreInput): ScoreResult {
   let score = 10; // base
 
   // Urgency
-  if (input.timeline === "asap") score += 20;
-  else if (input.timeline === "this_month") score += 12;
+  if (input.timeline === "asap") score += 18;
+  else if (input.timeline === "this_month") score += 11;
   else if (input.timeline === "researching") score += 2;
 
   // Service value
   if (HIGH_TICKET.test(input.serviceType)) {
-    score += 20;
+    score += 18;
     needFlags.push("high_ticket_service");
   } else if (MID_TICKET.test(input.serviceType)) {
-    score += 16;
+    score += 14;
   } else {
-    score += 8;
+    score += 7;
   }
 
+  // Owner-occupancy — the single most predictive field for home-services close rate.
+  if (input.ownerOccupied === true) score += 22;
+  else if (input.ownerOccupied === false) score -= 15; // likely renter
+
   // Contact quality
-  if (input.phoneE164) score += 10;
-  if (input.emailMx === true) score += 10;
+  if (input.phoneE164) score += 8;
+  if (input.emailMx === true) score += 8;
   if (input.emailDisposable) {
     score -= 25;
     fraudFlags.push("disposable_email");
   }
+  // Phone line-type (only when the paid lookup ran)
+  if (input.phoneLineType === "mobile") score += 8;
+  else if (input.phoneLineType === "voip") {
+    score -= 8;
+    fraudFlags.push("voip_number");
+  }
 
   // Seriousness: gave a full street address
-  if (input.hasAddress) score += 10;
+  if (input.hasAddress) score += 8;
 
   // Area affluence (estimate — area-level, never individual)
   if (input.areaMedianIncome != null) {
-    if (input.areaMedianIncome >= 80_000) score += 10;
-    else if (input.areaMedianIncome >= 60_000) score += 6;
-    else score += 2;
+    if (input.areaMedianIncome >= 80_000) score += 8;
+    else if (input.areaMedianIncome >= 60_000) score += 4;
   }
 
   // Duplicate suppression

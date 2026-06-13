@@ -259,8 +259,14 @@ Planning docs, brand direction, stack decision, repo set up.
 - ✅ Enrichment pipeline (free stack): dedupe, disposable-email + MX check (DoH),
   Census geocode → tract/county/lat-lng, ACS append (area median income + home value),
   scoring v1 (A/B/C), runs post-response via Cloudflare `waitUntil`.
-- ⬜ Phase 2b: county-assessor property/ownership source (columns ready, source pending).
-- ⬜ Live smoke test of external API calls post-deploy (sandbox egress blocked them locally).
+- ✅ Verified live end-to-end (real lead: geocode → Douglas County, MX check, score/grade).
+- ✅ Phase 2b: **county parcel integration** (free Chelan + Douglas ArcGIS) — owner-name
+  match → owner-occupancy (neutral: owner-occupied / likely renter / unverified, never
+  "fraud"), property age → need flags (panel/rewire/knob-and-tube), assessed value.
+  Self-detects fields per county; raw response logged for tuning.
+- ✅ **Phone line-type** (Twilio Lookup, paid, gated on TWILIO_* secrets) — mobile/VoIP
+  detection feeds scoring + a voip fraud flag.
+- ⬜ Tune county field detection against the first real lead per county (raw is logged).
 
 ### Phase 3 — Delivery + portals 🟢 (buyer side shipped)
 - ✅ **Lead routing + delivery** (`src/lib/delivery.ts`): after scoring, matches the lead

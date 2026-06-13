@@ -88,10 +88,10 @@ export async function deliverLead(
     score: enrichment.lead_score,
     ownerStatus:
       enrichment.owner_occupied == null
-        ? null
+        ? "Unverified"
         : enrichment.owner_occupied
           ? "Owner-occupied"
-          : "Renter",
+          : "Likely renter",
     areaIncome: enrichment.area_median_income,
     needFlags: enrichment.need_flags ?? [],
   };

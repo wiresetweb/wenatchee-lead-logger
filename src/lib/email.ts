@@ -82,6 +82,7 @@ export async function sendBuyerLeadEmail(
     ["Service", lead.serviceType],
     ["Timeline", lead.timeline ? (TIMELINE_LABEL[lead.timeline] ?? lead.timeline) : "—"],
     ["Project", lead.projectDetails || "—"],
+    ["Occupancy", lead.ownerStatus ?? "Unverified"],
     ["Lead grade", lead.grade ? `${lead.grade} (score ${lead.score ?? "—"})` : "—"],
     ["Area median income (est.)", money(lead.areaIncome)],
   ];

@@ -2,21 +2,24 @@ import "server-only";
 
 /**
  * Enrichment orchestrator (docs/LEAD_ENRICHMENT.md §2). Runs asynchronously after a
- * lead is captured — a failure here never blocks or loses the lead. Free-stack v1:
+ * lead is captured — a failure here never blocks or loses the lead. Free stack + an
+ * optional paid phone lookup:
  *
  *   1. dedupe check (same phone/email in the last 30 days)
  *   2. email quality (disposable list + MX via DoH)
  *   3. Census geocode (tract/county/lat-lng) when a street address was given
- *   4. ACS tract append (median household income, median home value — AREA estimates)
- *   5. score + grade, persist to lead_enrichment, advance leads.status
- *
- * Property/ownership (county assessor) is Phase 2b — columns exist, source pending.
+ *   4. in parallel: ACS area append, county parcel lookup (owner + property), phone intel
+ *   5. owner-name match → owner-occupancy; property age → need flags
+ *   6. score + grade, persist to lead_enrichment, advance status, route to buyers
  */
 
 import { getServiceClient } from "../supabase/server";
 import { deliverLead } from "../delivery";
 import { geocodeAddress, fetchAcsTractData } from "./census";
 import { hasMxRecords, isDisposableEmail } from "./email";
+import { lookupParcel, propertyNeedFlags } from "./property";
+import { lookupPhone } from "./phone";
+import { matchOwnerName, ownerOccupiedFromMatch } from "./names";
 import { scoreLead } from "./score";
 
 interface LeadRow {
@@ -69,36 +72,65 @@ export async function enrichLead(leadId: string): Promise<void> {
   ]);
   const emailDisposable = isDisposableEmail(lead.email);
 
-  // 4. ACS tract data when we resolved a tract.
-  const acs = geo ? await fetchAcsTractData(geo.stateFips, geo.countyFips, geo.tract) : null;
+  // 4. In parallel: ACS area data, county parcel lookup (owner + property), phone intel.
+  const county = geo?.countyName.replace(/ County$/, "") ?? null;
+  const [acs, parcel, phone] = await Promise.all([
+    geo ? fetchAcsTractData(geo.stateFips, geo.countyFips, geo.tract) : Promise.resolve(null),
+    geo ? lookupParcel(geo.lat, geo.lng, county) : Promise.resolve(null),
+    lookupPhone(lead.phone),
+  ]);
 
-  // 5. Score.
+  // 5. Owner-name match → owner-occupancy (neutral); property age → need flags.
+  const ownerMatch = matchOwnerName(lead.full_name, parcel?.ownerName);
+  const ownerOccupied = ownerOccupiedFromMatch(ownerMatch);
+  const needFlagsBase = propertyNeedFlags(parcel?.yearBuilt ?? null);
+
+  // 6. Score.
+  const phoneE164 = /^\+1\d{10}$/.test(lead.phone);
   const { score, grade, needFlags, fraudFlags } = scoreLead({
     timeline: lead.timeline,
     serviceType: lead.service_type,
     hasAddress: Boolean(lead.address_line1),
-    phoneE164: /^\+1\d{10}$/.test(lead.phone),
+    phoneE164,
     emailMx,
     emailDisposable,
     isDuplicate,
     areaMedianIncome: acs?.medianHouseholdIncome ?? null,
+    ownerOccupied,
+    phoneLineType: phone?.lineType ?? null,
   });
+  const allNeedFlags = [...new Set([...needFlagsBase, ...needFlags])];
+
+  const sources = ["census_geocoder", "acs5", "dns_mx"];
+  if (parcel) sources.push(`parcel:${county}`);
+  if (phone) sources.push("twilio_lookup");
 
   const { error: upsertError } = await supabase.from("lead_enrichment").upsert({
     lead_id: lead.id,
     enriched_at: new Date().toISOString(),
+    owner_occupied: ownerOccupied,
+    property_value: parcel?.assessedValue ?? null,
+    year_built: parcel?.yearBuilt ?? null,
     area_median_income: acs?.medianHouseholdIncome ?? null,
     area_median_home_value: acs?.medianHomeValue ?? null,
     census_tract: geo ? `${geo.stateFips}${geo.countyFips}${geo.tract}` : null,
+    phone_line_type: phone?.lineType ?? null,
+    phone_carrier: phone?.carrier ?? null,
     email_valid: emailMx,
     email_disposable: emailDisposable,
-    phone_valid: /^\+1\d{10}$/.test(lead.phone),
-    need_flags: needFlags,
+    phone_valid: phoneE164,
+    need_flags: allNeedFlags,
     fraud_flags: fraudFlags,
     lead_score: score,
     lead_grade: grade,
-    raw: { geo, acs, sources: ["census_geocoder", "acs5", "dns_mx"] },
-    provider_costs: { total_usd: 0 }, // free stack
+    raw: {
+      geo,
+      acs,
+      parcel: parcel ? { ...parcel, ownerMatch } : null,
+      phone,
+      sources,
+    },
+    provider_costs: { total_usd: phone ? 0.008 : 0 },
   });
   if (upsertError) {
     console.error("[enrich] enrichment upsert failed:", upsertError.message);
@@ -138,9 +170,9 @@ export async function enrichLead(leadId: string): Promise<void> {
     {
       lead_grade: grade,
       lead_score: score,
-      owner_occupied: null,
+      owner_occupied: ownerOccupied,
       area_median_income: acs?.medianHouseholdIncome ?? null,
-      need_flags: needFlags,
+      need_flags: allNeedFlags,
     },
   );
 }

@@ -54,15 +54,28 @@ export default async function LeadDetailPage({
 
   const { data: enr } = await supabase
     .from("lead_enrichment")
-    .select("lead_grade, lead_score, area_median_income, area_median_home_value, need_flags")
+    .select(
+      "lead_grade, lead_score, owner_occupied, year_built, property_value, phone_line_type, area_median_income, area_median_home_value, need_flags",
+    )
     .eq("lead_id", lead.id)
     .maybeSingle<{
       lead_grade: string | null;
       lead_score: number | null;
+      owner_occupied: boolean | null;
+      year_built: number | null;
+      property_value: number | null;
+      phone_line_type: string | null;
       area_median_income: number | null;
       area_median_home_value: number | null;
       need_flags: string[] | null;
     }>();
+
+  const occupancy =
+    enr?.owner_occupied == null
+      ? "Unverified"
+      : enr.owner_occupied
+        ? "Owner-occupied"
+        : "Likely renter";
 
   const money = (n: number | null | undefined) =>
     n == null ? "—" : `$${n.toLocaleString("en-US")}`;
@@ -134,6 +147,14 @@ export default async function LeadDetailPage({
           Area figures are modeled estimates for context only — not verified individual data.
         </p>
         <dl className="mt-4 grid gap-x-8 gap-y-3 sm:grid-cols-2">
+          <Detail label="Occupancy" value={occupancy} />
+          {enr?.year_built ? <Detail label="Year built" value={String(enr.year_built)} /> : null}
+          {enr?.property_value ? (
+            <Detail label="Assessed value" value={money(enr.property_value)} />
+          ) : null}
+          {enr?.phone_line_type ? (
+            <Detail label="Phone type" value={enr.phone_line_type} />
+          ) : null}
           <Detail label="Area median income (est.)" value={money(enr?.area_median_income)} />
           <Detail label="Area median home value (est.)" value={money(enr?.area_median_home_value)} />
           {enr?.need_flags && enr.need_flags.length > 0 && (
