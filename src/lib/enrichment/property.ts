@@ -25,10 +25,23 @@ export interface ParcelAttempt {
 
 export interface ParcelData {
   ownerName: string | null;
+  /** Owner's tax-mailing address — when it differs from the property, the owner is
+   *  likely absentee (a landlord/investor). */
+  mailingAddress: string | null;
   yearBuilt: number | null;
   assessedValue: number | null;
   situsAddress: string | null;
   landUse: string | null;
+  /** Last recorded sale, for new-homeowner / tenure signals. */
+  saleDate: string | null;
+  salePrice: number | null;
+  // Property size details (job-size signal for buyers).
+  sqft: number | null;
+  bedrooms: number | null;
+  bathrooms: number | null;
+  stories: number | null;
+  heating: string | null;
+  cooling: string | null;
   /** Which endpoint answered (null if none did). */
   source: string | null;
   raw: Record<string, unknown> | null;
@@ -121,8 +134,10 @@ export async function lookupParcel(
 
   const attempts: ParcelAttempt[] = [];
   const empty = (): ParcelData => ({
-    ownerName: null, yearBuilt: null, assessedValue: null, situsAddress: null,
-    landUse: null, source: null, raw: null, attempts,
+    ownerName: null, mailingAddress: null, yearBuilt: null, assessedValue: null,
+    situsAddress: null, landUse: null, saleDate: null, salePrice: null, sqft: null,
+    bedrooms: null, bathrooms: null, stories: null, heating: null, cooling: null,
+    source: null, raw: null, attempts,
   });
 
   for (const url of layers) {
@@ -134,12 +149,23 @@ export async function lookupParcel(
 
       const ownerName = toStr(pick(attrs, /owner|taxpayer/i, /addr|mail|city|state|zip|care|co_owner_addr/i));
       const yb = toNumber(pick(attrs, /year.?built|yr.?blt|yearbuilt|actyrblt/i));
+      const bath = toNumber(pick(attrs, /bath|bthrm|\bba\b|full.?bath/i, /half|garage/i));
       return {
         ownerName,
+        // Mailing/tax address must look like a street (contains a number) to qualify.
+        mailingAddress: toStr(pick(attrs, /mail|owner.?addr|tax.?addr|care.?of/i, /name|city|state|zip|country/i)),
         yearBuilt: yb && yb > 1700 && yb <= new Date().getFullYear() ? yb : null,
         assessedValue: toNumber(pick(attrs, /assess|market.?val|total.?val|apprais|taxable.?val/i, /land.?val|year/i)),
         situsAddress: toStr(pick(attrs, /situs|site.?addr|prop.?addr|location.?addr/i, /owner|mail/i)),
         landUse: toStr(pick(attrs, /land.?use|use.?code|prop.?class|property.?type|use.?desc/i)),
+        saleDate: toStr(pick(attrs, /sale.?date|saledt|deed.?date|rec.?date|transfer.?date|doc.?date|last.?sale/i, /price|amt|val/i)),
+        salePrice: toNumber(pick(attrs, /sale.?price|sale.?amt|saleamt|sale.?val|consideration|deed.?price/i, /date|year/i)),
+        sqft: toNumber(pick(attrs, /sq.?ft|sqft|square.?feet|living.?area|finished.?area|bldg.?area|heated.?area|gross.?area|\bgla\b/i, /lot|land|unfinished|base|garage/i)),
+        bedrooms: toNumber(pick(attrs, /bed|bdrm|\bbr\b|nbr.?bed/i, /bath/i)),
+        bathrooms: bath,
+        stories: toNumber(pick(attrs, /stor(y|ies)|num.?floor|nbr.?stor|floors/i, /sqft|area/i)),
+        heating: toStr(pick(attrs, /heat/i, /water.?heat|sqft|area/i)),
+        cooling: toStr(pick(attrs, /cool|air.?cond|central.?air|\bac\b/i, /account|tract/i)),
         source: url,
         raw: attrs,
         attempts,

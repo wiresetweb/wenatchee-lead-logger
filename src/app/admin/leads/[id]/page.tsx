@@ -52,6 +52,17 @@ export default async function AdminLeadDetail({
   const fmt = (v: unknown) =>
     v == null || v === "" ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v);
 
+  // Buyer signals live in the enrichment `raw` payload (no dedicated columns).
+  const raw = (enrichment?.raw ?? {}) as Record<string, unknown>;
+  const ownership = raw.ownership as
+    | { basis?: string; absenteeOwner?: boolean | null; newHomeowner?: boolean | null; tenureYears?: number | null; saleDate?: string | null; salePrice?: number | null }
+    | undefined;
+  const intent = raw.intent as { tags?: string[]; valueBand?: string; urgentSafety?: boolean } | undefined;
+  const property = raw.property as
+    | { sqft?: number | null; bedrooms?: number | null; bathrooms?: number | null; stories?: number | null; heating?: string | null; cooling?: string | null }
+    | undefined;
+  const hasSignals = Boolean(ownership || intent || property);
+
   const leadFields = [
     "full_name",
     "phone",
@@ -121,6 +132,44 @@ export default async function AdminLeadDetail({
         )}
       </Section>
 
+      {hasSignals && (
+        <Section title="Buyer signals">
+          <dl className="grid gap-x-8 gap-y-2 sm:grid-cols-2">
+            <Row k="Job type" v={intent?.tags?.length ? intent.tags.join(", ") : "—"} />
+            <Row k="Job value band" v={intent?.valueBand ?? "—"} />
+            <Row k="Urgent safety" v={intent?.urgentSafety ? "Yes" : "No"} />
+            <Row k="Ownership basis" v={ownership?.basis ?? "—"} />
+            <Row
+              k="New homeowner"
+              v={ownership?.newHomeowner == null ? "—" : ownership.newHomeowner ? "Yes" : "No"}
+            />
+            <Row k="Owned for" v={ownership?.tenureYears != null ? `${ownership.tenureYears} yr` : "—"} />
+            <Row
+              k="Absentee owner"
+              v={ownership?.absenteeOwner == null ? "—" : ownership.absenteeOwner ? "Yes" : "No"}
+            />
+            <Row k="Last sale" v={fmt(ownership?.saleDate)} />
+            <Row
+              k="Property"
+              v={
+                property &&
+                (property.sqft || property.bedrooms || property.bathrooms || property.stories)
+                  ? [
+                      property.sqft ? `${property.sqft} sqft` : null,
+                      property.bedrooms ? `${property.bedrooms} bd` : null,
+                      property.bathrooms ? `${property.bathrooms} ba` : null,
+                      property.stories ? `${property.stories} story` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : "—"
+              }
+            />
+            <Row k="Heating / cooling" v={[property?.heating, property?.cooling].filter(Boolean).join(" / ") || "—"} />
+          </dl>
+        </Section>
+      )}
+
       <Section title="Deliveries">
         {(deliveries ?? []).length === 0 ? (
           <p className="text-sm text-ink-500">Not delivered to any buyer.</p>
@@ -139,6 +188,15 @@ export default async function AdminLeadDetail({
           </ul>
         )}
       </Section>
+    </div>
+  );
+}
+
+function Row({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex justify-between gap-4 border-b border-ink-50 py-1">
+      <dt className="text-xs uppercase tracking-wide text-ink-400">{k}</dt>
+      <dd className="text-right text-sm text-ink-800">{v}</dd>
     </div>
   );
 }

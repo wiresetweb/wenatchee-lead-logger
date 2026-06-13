@@ -19,7 +19,9 @@ import { geocodeAddress, fetchAcsTractData } from "./census";
 import { hasMxRecords, isDisposableEmail } from "./email";
 import { lookupParcel, propertyNeedFlags } from "./property";
 import { lookupPhone } from "./phone";
-import { matchOwnerName, ownerOccupiedFromMatch } from "./names";
+import { matchOwnerName } from "./names";
+import { computeOwnership } from "./ownership";
+import { parseJobIntent } from "./intent";
 import { scoreLead } from "./score";
 
 interface LeadRow {
@@ -82,10 +84,29 @@ export async function enrichLead(leadId: string): Promise<void> {
     lookupPhone(lead.phone),
   ]);
 
-  // 5. Owner-name match → owner-occupancy (neutral); property age → need flags.
+  // 5. Ownership signals (mailing-vs-property + sale recency, falling back to name
+  // match); property age → need flags; job intent from the project description.
   const ownerMatch = matchOwnerName(lead.full_name, parcel?.ownerName);
-  const ownerOccupied = ownerOccupiedFromMatch(ownerMatch);
+  const ownership = computeOwnership({
+    situsAddress: parcel?.situsAddress ?? lead.address_line1 ?? null,
+    mailingAddress: parcel?.mailingAddress ?? null,
+    saleDate: parcel?.saleDate ?? null,
+    salePrice: parcel?.salePrice ?? null,
+    nameMatch: ownerMatch,
+  });
+  const ownerOccupied = ownership.ownerOccupied;
   const needFlagsBase = propertyNeedFlags(parcel?.yearBuilt ?? null);
+  const intent = parseJobIntent(lead.service_type, lead.project_details);
+  const propertyDetails = parcel
+    ? {
+        sqft: parcel.sqft,
+        bedrooms: parcel.bedrooms,
+        bathrooms: parcel.bathrooms,
+        stories: parcel.stories,
+        heating: parcel.heating,
+        cooling: parcel.cooling,
+      }
+    : null;
 
   // 6. Score.
   const phoneE164 = /^\+1\d{10}$/.test(lead.phone);
@@ -100,6 +121,7 @@ export async function enrichLead(leadId: string): Promise<void> {
     areaMedianIncome: acs?.medianHouseholdIncome ?? null,
     ownerOccupied,
     phoneLineType: phone?.lineType ?? null,
+    newHomeowner: ownership.newHomeowner,
   });
   const allNeedFlags = [...new Set([...needFlagsBase, ...needFlags])];
 
@@ -130,6 +152,9 @@ export async function enrichLead(leadId: string): Promise<void> {
       acs,
       parcel: parcel ? { ...parcel, ownerMatch } : null,
       phone,
+      ownership,
+      intent,
+      property: propertyDetails,
       sources,
       diagnostics: { acs: acsDiag, parcel: parcel?.attempts ?? null },
     },
@@ -176,6 +201,13 @@ export async function enrichLead(leadId: string): Promise<void> {
       owner_occupied: ownerOccupied,
       area_median_income: acs?.medianHouseholdIncome ?? null,
       need_flags: allNeedFlags,
+      absentee_owner: ownership.absenteeOwner,
+      new_homeowner: ownership.newHomeowner,
+      tenure_years: ownership.tenureYears,
+      job_tags: intent.tags,
+      job_value_band: intent.valueBand,
+      urgent_safety: intent.urgentSafety,
+      property: propertyDetails,
     },
   );
 }

@@ -57,6 +57,54 @@ export interface LeadEmailData {
   ownerStatus: string | null;
   areaIncome: number | null;
   needFlags: string[];
+  newHomeowner?: boolean | null;
+  tenureYears?: number | null;
+  jobTags?: string[];
+  jobValueBand?: string | null;
+  urgentSafety?: boolean;
+  property?: {
+    sqft: number | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    stories: number | null;
+    heating: string | null;
+    cooling: string | null;
+  } | null;
+}
+
+/** Compact, human one-line summary of property size when any field is present. */
+function propertySummary(p: LeadEmailData["property"]): string | null {
+  if (!p) return null;
+  const bits: string[] = [];
+  if (p.sqft) bits.push(`${p.sqft.toLocaleString("en-US")} sqft`);
+  if (p.bedrooms) bits.push(`${p.bedrooms} bd`);
+  if (p.bathrooms) bits.push(`${p.bathrooms} ba`);
+  if (p.stories) bits.push(`${p.stories} story`);
+  if (p.heating) bits.push(`heat: ${p.heating}`);
+  if (p.cooling) bits.push(`cooling: ${p.cooling}`);
+  return bits.length ? bits.join(" · ") : null;
+}
+
+const TAG_LABEL: Record<string, string> = {
+  panel_upgrade: "Panel upgrade",
+  rewire: "Rewire",
+  generator: "Generator",
+  new_construction: "New construction / addition",
+  ev_charger: "EV charger",
+  subpanel: "Subpanel",
+  hot_tub_circuit: "Hot tub / pool circuit",
+  heat_pump_circuit: "Heat pump circuit",
+  lighting: "Lighting",
+  outlets_switches: "Outlets / switches",
+  troubleshoot: "Troubleshooting",
+  roof_replacement: "Roof replacement",
+  storm_damage: "Storm damage",
+  roof_repair: "Roof repair",
+};
+
+function tagLabels(tags?: string[]): string {
+  if (!tags?.length) return "—";
+  return tags.map((t) => TAG_LABEL[t] ?? t.replace(/_/g, " ")).join(", ");
 }
 
 const TIMELINE_LABEL: Record<string, string> = {
@@ -74,20 +122,27 @@ export async function sendBuyerLeadEmail(
 ): Promise<boolean> {
   const money = (n: number | null) =>
     n == null ? "—" : `$${n.toLocaleString("en-US")}`;
+  const propSummary = propertySummary(lead.property);
   const rows: [string, string][] = [
     ["Name", lead.fullName],
     ["Phone", lead.phone],
     ["Email", lead.email],
     ["City", lead.city],
     ["Service", lead.serviceType],
+    ["Job type", tagLabels(lead.jobTags)],
     ["Timeline", lead.timeline ? (TIMELINE_LABEL[lead.timeline] ?? lead.timeline) : "—"],
     ["Project", lead.projectDetails || "—"],
     ["Occupancy", lead.ownerStatus ?? "Unverified"],
+    ...(lead.newHomeowner ? ([["Homeowner", "New homeowner (bought < 1 yr ago)"]] as [string, string][]) : []),
+    ...(lead.tenureYears != null && !lead.newHomeowner
+      ? ([["Owned for", `${lead.tenureYears} yr`]] as [string, string][])
+      : []),
+    ...(propSummary ? ([["Property", propSummary]] as [string, string][]) : []),
     ["Lead grade", lead.grade ? `${lead.grade} (score ${lead.score ?? "—"})` : "—"],
     ["Area median income (est.)", money(lead.areaIncome)],
   ];
 
-  const subject = `New ${lead.grade ?? ""} lead: ${lead.serviceType} in ${lead.city}`;
+  const subject = `${lead.urgentSafety ? "⚠ URGENT — " : ""}New ${lead.grade ?? ""} lead: ${lead.serviceType} in ${lead.city}`;
   const text =
     `New lead for ${buyerName}\n\n` +
     rows.map(([k, v]) => `${k}: ${v}`).join("\n") +

@@ -17,6 +17,8 @@ export interface ScoreInput {
   ownerOccupied: boolean | null;
   /** mobile | landline | voip | null (paid lookup disabled). */
   phoneLineType: string | null;
+  /** Bought within the last 12 months — strong renovation intent. */
+  newHomeowner?: boolean | null;
 }
 
 export interface ScoreResult {
@@ -52,6 +54,12 @@ export function scoreLead(input: ScoreInput): ScoreResult {
   // Owner-occupancy — the single most predictive field for home-services close rate.
   if (input.ownerOccupied === true) score += 22;
   else if (input.ownerOccupied === false) score -= 15; // likely renter
+
+  // New homeowner (bought < 12 mo) — high renovation/home-services intent.
+  if (input.newHomeowner === true) {
+    score += 12;
+    needFlags.push("new_homeowner");
+  }
 
   // Contact quality
   if (input.phoneE164) score += 8;

@@ -49,6 +49,20 @@ interface EnrichmentForDelivery {
   owner_occupied: boolean | null;
   area_median_income: number | null;
   need_flags: string[] | null;
+  absentee_owner?: boolean | null;
+  new_homeowner?: boolean | null;
+  tenure_years?: number | null;
+  job_tags?: string[] | null;
+  job_value_band?: string | null;
+  urgent_safety?: boolean | null;
+  property?: {
+    sqft: number | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    stories: number | null;
+    heating: string | null;
+    cooling: string | null;
+  } | null;
 }
 
 export async function deliverLead(
@@ -91,9 +105,15 @@ export async function deliverLead(
         ? "Unverified"
         : enrichment.owner_occupied
           ? "Owner-occupied"
-          : "Likely renter",
+          : "Likely renter (absentee owner)",
     areaIncome: enrichment.area_median_income,
     needFlags: enrichment.need_flags ?? [],
+    newHomeowner: enrichment.new_homeowner ?? null,
+    tenureYears: enrichment.tenure_years ?? null,
+    jobTags: enrichment.job_tags ?? [],
+    jobValueBand: enrichment.job_value_band ?? null,
+    urgentSafety: enrichment.urgent_safety ?? false,
+    property: enrichment.property ?? null,
   };
   const portalUrl = `${SITE.url.replace(/\/$/, "")}/portal`;
 
