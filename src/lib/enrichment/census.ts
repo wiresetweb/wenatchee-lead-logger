@@ -81,28 +81,37 @@ export async function fetchAcsTractData(
   countyFips: string,
   tract: string,
 ): Promise<AcsTractData | null> {
-  const params = new URLSearchParams({
-    get: "B19013_001E,B25077_001E", // median household income, median home value
-    for: `tract:${tract}`,
-    in: `state:${stateFips} county:${countyFips}`,
-  });
   const key = process.env.CENSUS_API_KEY;
-  if (key) params.set("key", key);
+  const vars = "B19013_001E,B25077_001E"; // median household income, median home value
 
-  try {
-    const res = await fetch(`https://api.census.gov/data/${ACS_YEAR}/acs/acs5?${params}`, {
-      signal: AbortSignal.timeout(8000),
-    });
-    if (!res.ok) return null;
-    const rows = (await res.json()) as string[][];
-    // rows[0] = headers, rows[1] = values
-    const values = rows[1];
-    if (!values) return null;
-    return {
-      medianHouseholdIncome: acsNumber(values[0]),
-      medianHomeValue: acsNumber(values[1]),
-    };
-  } catch {
-    return null;
+  // Build the URL manually: URLSearchParams encodes spaces as "+", but the Census API
+  // expects the `in=` clause to use "%20" between the state and county selectors.
+  const keyParam = key ? `&key=${encodeURIComponent(key)}` : "";
+  const tractUrl =
+    `https://api.census.gov/data/${ACS_YEAR}/acs/acs5?get=${vars}` +
+    `&for=tract:${tract}&in=${encodeURIComponent(`state:${stateFips} county:${countyFips}`)}` +
+    keyParam;
+  // County-level fallback — more likely to resolve, still a useful area estimate.
+  const countyUrl =
+    `https://api.census.gov/data/${ACS_YEAR}/acs/acs5?get=${vars}` +
+    `&for=county:${countyFips}&in=state:${stateFips}` +
+    keyParam;
+
+  for (const url of [tractUrl, countyUrl]) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+      if (!res.ok) continue;
+      const rows = (await res.json()) as string[][];
+      const values = rows?.[1]; // rows[0] = headers, rows[1] = values
+      if (!values) continue;
+      const income = acsNumber(values[0]);
+      const homeValue = acsNumber(values[1]);
+      if (income != null || homeValue != null) {
+        return { medianHouseholdIncome: income, medianHomeValue: homeValue };
+      }
+    } catch {
+      // try the next URL
+    }
   }
+  return null;
 }
