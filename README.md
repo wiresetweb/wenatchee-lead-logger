@@ -58,17 +58,28 @@ Scripts: `npm run build`, `npm run lint`, `npm run typecheck`, `npm test` (vites
 
 ## Operating the platform
 
-**Environment variables** (set in Cloudflare → Worker → Settings → Variables; see
-`.env.example` for the full list):
+**Environment variables.** ⚠️ On Cloudflare, a `wrangler deploy` overwrites the Worker's
+plain-text **Variables** with whatever is in `wrangler.jsonc` — but it never touches
+**Secrets**. So:
 
-| Var | Needed for |
-| --- | --- |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | Lead persistence, enrichment, delivery, admin reads (secret) |
-| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Buyer/admin login (publishable; defaults shipped) |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Buyer lead-notification emails |
-| `ADMIN_EMAILS` | Comma-separated allowlist for `/admin` |
-| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY` | Anti-bot on the quote form |
-| `CENSUS_API_KEY` | (optional) higher Census rate limits |
+- **Non-secret config** (e.g. `SUPABASE_URL`) lives in `wrangler.jsonc` → `vars` (committed,
+  survives every deploy). Don't also set it in the dashboard.
+- **Secrets / sensitive values** must be added in the dashboard as **Secrets** (Settings →
+  Variables and Secrets → type *Secret* / Encrypt), or via `npx wrangler secret put NAME`.
+  These persist across deploys. Do **not** add them as plain Variables — they'll be wiped.
+
+| Var | Where to set | Needed for |
+| --- | --- | --- |
+| `SUPABASE_URL` | `wrangler.jsonc` vars (already committed) | Lead persistence, enrichment, admin reads |
+| `SUPABASE_SERVICE_ROLE_KEY` | **Dashboard Secret** | Same (this is the sensitive one) |
+| `ADMIN_EMAILS` | **Dashboard Secret** | Allowlist for `/admin` |
+| `RESEND_API_KEY`, `EMAIL_FROM` | **Dashboard Secret** | Buyer notification emails |
+| `NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` | (defaults shipped in code) | Buyer/admin login |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY` | Build var / Secret | Anti-bot |
+| `CENSUS_API_KEY` | Dashboard Secret (optional) | Higher Census rate limits |
+
+> Diagnostic: open `/api/health` in a browser — it reports (no secrets) whether the DB
+> connects and whether any env value contains stray whitespace.
 
 **Create an admin:** add the email to `ADMIN_EMAILS`, then create a Supabase Auth user
 with that email (Supabase dashboard → Authentication → Add user). Sign in at `/admin`.

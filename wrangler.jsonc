@@ -18,6 +18,12 @@
   "images": {
     "binding": "IMAGES"
   },
+  // Non-secret runtime vars live here so they survive every deploy. (A `wrangler deploy`
+  // overwrites dashboard plain-text Variables with this list — but it never touches
+  // Secrets. So: non-secret config goes here; secrets stay as dashboard Secrets.)
+  "vars": {
+    "SUPABASE_URL": "https://btifsnnjuiwpbwvlzstc.supabase.co"
+  },
   "observability": {
     "enabled": true
   }
