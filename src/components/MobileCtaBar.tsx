@@ -8,7 +8,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SITE } from "@/lib/site";
 
-const HIDDEN_ON = ["/get-quote", "/thank-you"];
+const HIDDEN_ON = ["/get-quote", "/thank-you", "/portal"];
 
 export function MobileCtaBar() {
   const pathname = usePathname();

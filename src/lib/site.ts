@@ -67,6 +67,7 @@ export const FOOTER_NAV = [
     links: [
       { label: "Privacy policy", href: "/privacy" },
       { label: "Terms of service", href: "/terms" },
+      { label: "Contractor login", href: "/portal" },
     ],
   },
 ] as const;

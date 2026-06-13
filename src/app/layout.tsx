@@ -5,6 +5,7 @@ import { SITE } from "@/lib/site";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
 import { MobileCtaBar } from "@/components/MobileCtaBar";
+import { ChromeGate } from "@/components/ChromeGate";
 import { JsonLd } from "@/components/JsonLd";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
 
@@ -35,9 +36,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="flex min-h-full flex-col bg-white">
         <JsonLd data={[organizationSchema(), websiteSchema()]} />
-        <Header />
+        <ChromeGate>
+          <Header />
+        </ChromeGate>
         <main className="flex-1">{children}</main>
-        <Footer />
+        <ChromeGate>
+          <Footer />
+        </ChromeGate>
         <MobileCtaBar />
       </body>
     </html>

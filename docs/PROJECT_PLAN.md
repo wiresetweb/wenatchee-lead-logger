@@ -262,12 +262,19 @@ Planning docs, brand direction, stack decision, repo set up.
 - ⬜ Phase 2b: county-assessor property/ownership source (columns ready, source pending).
 - ⬜ Live smoke test of external API calls post-deploy (sandbox egress blocked them locally).
 
-### Phase 3 — Delivery + portals
-- **Real-time email** to the buyer on every new lead (their primary alert).
-- **Buyer portal** (Supabase Auth, site login): buyer sees only their delivered leads +
-  enrichment, RLS-scoped. Free intro leads flow here too.
-- **Admin dashboard** (internal): all leads, enrichment, scores, deliveries, revenue, buyers.
-- Log every delivery + price → `lead_deliveries`.
+### Phase 3 — Delivery + portals 🟢 (buyer side shipped)
+- ✅ **Lead routing + delivery** (`src/lib/delivery.ts`): after scoring, matches the lead
+  to eligible active buyers (trade/area/service/min-grade), records `lead_deliveries`
+  (idempotent), applies intro-free pricing (first 5 leads free), advances status.
+- ✅ **Real-time email** to the buyer on every new lead (`src/lib/email.ts`, Resend over
+  HTTP; degrades gracefully without a key).
+- ✅ **Buyer portal** (`/portal`, Supabase Auth + RLS): login, lead dashboard, lead detail
+  with full contact + enrichment, outcome marking (contacted/quoted/won/lost). RLS
+  isolation + buyer-scoped updates verified against the live DB.
+- ⬜ **Admin dashboard** (internal): all leads, enrichment, scores, deliveries, revenue —
+  still to build.
+- ⬜ Buyer provisioning UI (for now, create buyers + invite logins via SQL/MCP).
+- ⬜ Live login smoke test once a real buyer account exists.
 
 ### Phase 4 — SEO scale
 - Programmatic service×city pages, cost guides, FAQ/blog content.

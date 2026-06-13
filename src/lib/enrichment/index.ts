@@ -14,6 +14,7 @@ import "server-only";
  */
 
 import { getServiceClient } from "../supabase/server";
+import { deliverLead } from "../delivery";
 import { geocodeAddress, fetchAcsTractData } from "./census";
 import { hasMxRecords, isDisposableEmail } from "./email";
 import { scoreLead } from "./score";
@@ -23,8 +24,10 @@ interface LeadRow {
   trade: string;
   service_type: string;
   timeline: string | null;
+  full_name: string;
   phone: string;
   email: string;
+  project_details: string | null;
   address_line1: string | null;
   city: string;
   state: string;
@@ -38,7 +41,7 @@ export async function enrichLead(leadId: string): Promise<void> {
   const { data: lead, error } = await supabase
     .from("leads")
     .select(
-      "id, trade, service_type, timeline, phone, email, address_line1, city, state, postal_code",
+      "id, trade, service_type, timeline, full_name, phone, email, project_details, address_line1, city, state, postal_code",
     )
     .eq("id", leadId)
     .single<LeadRow>();
@@ -115,4 +118,29 @@ export async function enrichLead(leadId: string): Promise<void> {
   if (updateError) {
     console.error("[enrich] lead status update failed:", updateError.message);
   }
+
+  // Route + deliver to eligible buyers (advances status to 'delivered'; no-op if
+  // no buyers match or the lead was rejected).
+  await deliverLead(
+    supabase,
+    {
+      id: lead.id,
+      trade: lead.trade,
+      city: lead.city,
+      service_type: lead.service_type,
+      full_name: lead.full_name,
+      phone: lead.phone,
+      email: lead.email,
+      timeline: lead.timeline,
+      project_details: lead.project_details ?? null,
+      address_line1: lead.address_line1,
+    },
+    {
+      lead_grade: grade,
+      lead_score: score,
+      owner_occupied: null,
+      area_median_income: acs?.medianHouseholdIncome ?? null,
+      need_flags: needFlags,
+    },
+  );
 }
