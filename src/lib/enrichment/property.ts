@@ -137,10 +137,22 @@ function buildFromAttrs(
   };
 }
 
+/** Fetch + parse JSON, returning null on any failure (network, !ok, parse). */
+async function fetchJson(url: string): Promise<unknown | null> {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(7000), headers: { accept: "application/json" } });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Probe the ArcGIS server catalog (root + folders) for diagnostics AND derive candidate
- * parcel layer URLs — any service whose name mentions "parcel" on a Map/FeatureServer.
- * This self-heals when a county renames its parcel service (as Douglas did).
+ * parcel layer URLs — any service whose name mentions "parcel" on a Map/FeatureServer,
+ * enumerating each service's layers to find the real parcel layer id. This self-heals
+ * when a county renames or restructures its parcel service (as Douglas did).
  */
 async function discover(base: string): Promise<{ attempt: ParcelAttempt; candidates: string[] }> {
   const url = `${base}?f=json`;
@@ -173,9 +185,23 @@ async function discover(base: string): Promise<{ attempt: ParcelAttempt; candida
     const all = [...(data.services ?? []), ...folderLists.flat()];
     attempt.services = all.map((s) => `${s.name}/${s.type}`).slice(0, 60);
     attempt.folders = folders.slice(0, 40);
-    const candidates = all
+
+    // Parcel-ish services, then enumerate each service's actual layers (the parcel layer
+    // is often NOT id 0) and build precise layer URLs — preferring layers named "parcel".
+    const parcelSvcs = all
       .filter((s) => s.name && /parcel/i.test(s.name) && /(MapServer|FeatureServer)/i.test(s.type ?? ""))
-      .map((s) => `${base}/${s.name}/${s.type}/0`);
+      .slice(0, 4);
+    const layerLists = await Promise.all(
+      parcelSvcs.map(async (s) => {
+        const svcUrl = `${base}/${s.name}/${s.type}`;
+        const meta = (await fetchJson(`${svcUrl}?f=json`)) as { layers?: { id?: number; name?: string }[] } | null;
+        const layers = meta?.layers ?? [];
+        if (!layers.length) return [`${svcUrl}/0`];
+        const named = layers.filter((L) => /parcel/i.test(L.name ?? ""));
+        return (named.length ? named : layers).slice(0, 3).map((L) => `${svcUrl}/${L.id ?? 0}`);
+      }),
+    );
+    const candidates = [...new Set(layerLists.flat())];
     return { attempt, candidates };
   } catch (e) {
     attempt.error = e instanceof Error ? e.message : String(e);
