@@ -6,7 +6,7 @@ import { FEATURED_CITIES } from "@/content/cities";
 import { GUIDES } from "@/content/guides";
 import { pageMeta, serviceSchema, breadcrumbSchema } from "@/lib/seo";
 import { fmtMoney } from "@/lib/local";
-import { Container, ButtonLink, Badge, H2, Lead } from "@/components/ui";
+import { Container, ButtonLink, H2, Lead } from "@/components/ui";
 import {
   TrustBar,
   HowItWorksSteps,
@@ -16,6 +16,7 @@ import {
   Breadcrumbs,
 } from "@/components/sections";
 import { QuoteForm } from "@/components/QuoteForm";
+import { Photo } from "@/components/Photo";
 import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = pageMeta({
@@ -45,31 +46,40 @@ export default function ElectriciansHubPage() {
         ]}
       />
 
-      {/* Hero with embedded quote form */}
-      <section className="bg-gradient-to-b from-brand-50 to-white">
+      {/* Hero with embedded quote form — full-bleed valley photo (matches home) */}
+      <section className="relative isolate overflow-hidden bg-ink-900">
+        <Photo
+          name="hero-wenatchee"
+          alt="Golden hills of the Wenatchee Valley at dusk"
+          priority
+          sizes="100vw"
+          className="absolute inset-0 -z-10 h-full w-full object-cover object-[50%_35%]"
+        />
+        <div className="absolute inset-0 -z-10 bg-gradient-to-r from-ink-950/90 via-ink-900/75 to-brand-950/55" />
         <Container className="py-10 sm:py-14">
-          <Breadcrumbs items={crumbs} />
+          <Breadcrumbs items={crumbs} tone="light" />
           <div className="mt-6 grid gap-12 lg:grid-cols-2 lg:items-center">
             <div>
-              <Badge>
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 text-sm font-medium text-brand-100 ring-1 ring-inset ring-white/25 backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-brand-400" />
                 Licensed local electricians · {SITE.regionShort}, {SITE.state}
-              </Badge>
-              <h1 className="mt-4 font-display text-4xl font-extrabold tracking-tight text-ink-900 sm:text-5xl">
+              </span>
+              <h1 className="mt-4 font-display text-4xl font-extrabold tracking-tight text-white sm:text-5xl">
                 Get matched with a{" "}
-                <span className="text-brand-600">trusted local electrician</span>
+                <span className="text-brand-300">trusted local electrician</span>
               </h1>
-              <p className="mt-5 max-w-xl text-lg text-ink-600">
+              <p className="mt-5 max-w-xl text-lg text-ink-100">
                 From a flickering light to a full panel upgrade, we connect you with a
                 vetted electrician who serves {SITE.regionName} — usually with a same-day
                 callback. Always free, no obligation.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <ButtonLink href="/get-quote" size="lg">
+                <ButtonLink href="/get-quote" size="lg" className="shadow-lg shadow-brand-950/40">
                   Get my free quote
                 </ButtonLink>
                 <a
                   href={SITE.phoneHref}
-                  className="text-base font-semibold text-ink-800 hover:text-brand-700"
+                  className="text-base font-semibold text-white underline-offset-4 hover:underline"
                 >
                   or call {SITE.phone}
                 </a>

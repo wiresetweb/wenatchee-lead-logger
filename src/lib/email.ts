@@ -175,6 +175,63 @@ export async function sendBuyerLeadEmail(
   return sendEmail({ to, subject, html, text });
 }
 
+/** Internal heads-up to the site owner/operator for EVERY captured lead — including
+ *  rejects and leads no buyer matched — so nothing slips through. Recipient comes from
+ *  OWNER_NOTIFY_EMAIL (falls back to the site contact address). */
+export async function sendOwnerLeadNotification(
+  lead: LeadEmailData,
+  adminUrl: string,
+): Promise<boolean> {
+  const to = process.env.OWNER_NOTIFY_EMAIL || SITE.email;
+  if (!to) return false;
+
+  const propSummary = propertySummary(lead.property);
+  const rows: [string, string][] = [
+    ["Name", lead.fullName],
+    ["Phone", lead.phone],
+    ["Email", lead.email],
+    ["City", lead.city],
+    ["Address", lead.addressLine1 || "—"],
+    ["Service", lead.serviceType],
+    ["Job type", tagLabels(lead.jobTags)],
+    ["Timeline", lead.timeline ? (TIMELINE_LABEL[lead.timeline] ?? lead.timeline) : "—"],
+    ["Project", lead.projectDetails || "—"],
+    ["Occupancy", lead.ownerStatus ?? "Unverified"],
+    ...(propSummary ? ([["Property", propSummary]] as [string, string][]) : []),
+    ["Lead grade", lead.grade ? `${lead.grade} (score ${lead.score ?? "—"})` : "—"],
+  ];
+
+  const subject = `${lead.urgentSafety ? "⚠ URGENT — " : ""}New lead (${lead.grade ?? "?"}): ${lead.serviceType} — ${lead.fullName}`;
+  const text =
+    `New lead captured\n\n` +
+    rows.map(([k, v]) => `${k}: ${v}`).join("\n") +
+    `\n\nView in admin: ${adminUrl}`;
+
+  const tableRows = rows
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:6px 12px;color:#64748b;font-size:13px">${k}</td>` +
+        `<td style="padding:6px 12px;color:#0f172a;font-size:14px;font-weight:500">${escapeHtml(
+          v,
+        )}</td></tr>`,
+    )
+    .join("");
+  const html = `<!doctype html><html><body style="margin:0;background:#f8fafc;font-family:system-ui,sans-serif">
+  <div style="max-width:560px;margin:0 auto;padding:24px">
+    <div style="background:#0f172a;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0">
+      <strong style="font-size:16px">New lead — ${escapeHtml(lead.serviceType)} (${escapeHtml(lead.grade ?? "?")})</strong>
+    </div>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-top:0;border-radius:0 0 12px 12px;padding:8px 8px 16px">
+      <table style="width:100%;border-collapse:collapse">${tableRows}</table>
+      <div style="padding:12px">
+        <a href="${adminUrl}" style="display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600;font-size:14px">Open in admin</a>
+      </div>
+    </div>
+  </div></body></html>`;
+
+  return sendEmail({ to, subject, html, text });
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")

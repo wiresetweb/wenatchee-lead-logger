@@ -285,19 +285,29 @@ export function FaqList({ faqs }: { faqs: { q: string; a: string }[] }) {
 
 /* -------------------------------- breadcrumbs ------------------------------ */
 
-export function Breadcrumbs({ items }: { items: { name: string; path: string }[] }) {
+export function Breadcrumbs({
+  items,
+  tone = "dark",
+}: {
+  items: { name: string; path: string }[];
+  /** "light" = white-ish text for use on dark/photo hero backgrounds. */
+  tone?: "dark" | "light";
+}) {
+  const muted = tone === "light" ? "text-white/70" : "text-ink-500";
+  const link = tone === "light" ? "hover:text-white" : "hover:text-brand-700";
+  const current = tone === "light" ? "text-white" : "text-ink-700";
   return (
-    <nav aria-label="Breadcrumb" className="text-sm text-ink-500">
+    <nav aria-label="Breadcrumb" className={`text-sm ${muted}`}>
       <ol className="flex flex-wrap items-center gap-1.5">
         {items.map((item, i) => (
           <li key={item.path} className="flex items-center gap-1.5">
             {i > 0 && <span aria-hidden>/</span>}
             {i < items.length - 1 ? (
-              <Link href={item.path} className="hover:text-brand-700">
+              <Link href={item.path} className={link}>
                 {item.name}
               </Link>
             ) : (
-              <span className="text-ink-700">{item.name}</span>
+              <span className={current}>{item.name}</span>
             )}
           </li>
         ))}

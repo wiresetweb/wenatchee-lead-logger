@@ -15,6 +15,8 @@ import "server-only";
 
 import { getServiceClient } from "../supabase/server";
 import { deliverLead } from "../delivery";
+import { SITE } from "../site";
+import { sendOwnerLeadNotification } from "../email";
 import { geocodeAddress, fetchAcsTractData } from "./census";
 import { hasMxRecords, isDisposableEmail } from "./email";
 import { lookupParcel, propertyNeedFlags } from "./property";
@@ -178,6 +180,35 @@ export async function enrichLead(leadId: string): Promise<void> {
   if (updateError) {
     console.error("[enrich] lead status update failed:", updateError.message);
   }
+
+  // Notify the site owner about EVERY captured lead (including rejects / no-match),
+  // so nothing slips through. Best-effort — never blocks delivery.
+  const ownerStatus =
+    ownerOccupied == null ? "Unverified" : ownerOccupied ? "Owner-occupied" : "Likely renter (absentee owner)";
+  await sendOwnerLeadNotification(
+    {
+      fullName: lead.full_name,
+      phone: lead.phone,
+      email: lead.email,
+      city: lead.city,
+      serviceType: lead.service_type,
+      timeline: lead.timeline,
+      projectDetails: lead.project_details ?? null,
+      addressLine1: lead.address_line1,
+      grade,
+      score,
+      ownerStatus,
+      areaIncome: acs?.medianHouseholdIncome ?? null,
+      needFlags: allNeedFlags,
+      newHomeowner: ownership.newHomeowner,
+      tenureYears: ownership.tenureYears,
+      jobTags: intent.tags,
+      jobValueBand: intent.valueBand,
+      urgentSafety: intent.urgentSafety,
+      property: propertyDetails,
+    },
+    `${SITE.url.replace(/\/$/, "")}/admin/leads/${lead.id}`,
+  ).catch((err) => console.error("[enrich] owner notification failed:", err));
 
   // Route + deliver to eligible buyers (advances status to 'delivered'; no-op if
   // no buyers match or the lead was rejected).

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
 import { POSTS, getPost, type Block } from "@/content/blog";
-import { pageMeta, faqSchema, breadcrumbSchema } from "@/lib/seo";
+import { pageMeta, faqSchema, breadcrumbSchema, articleSchema } from "@/lib/seo";
 import { Container, H2, ButtonLink } from "@/components/ui";
 import { Breadcrumbs, CtaBand } from "@/components/sections";
 import { JsonLd } from "@/components/JsonLd";
@@ -20,21 +20,23 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = getPost(slug);
   if (!post) return {};
-  return pageMeta({ title: post.title, description: post.excerpt, path: `/blog/${post.slug}` });
+  return pageMeta({
+    title: post.title,
+    description: post.excerpt,
+    path: `/blog/${post.slug}`,
+    type: "article",
+    publishedTime: post.date,
+  });
 }
 
-function articleSchema(post: NonNullable<ReturnType<typeof getPost>>) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    headline: post.title,
-    description: post.excerpt,
-    datePublished: post.date,
-    dateModified: post.date,
-    author: { "@type": "Organization", name: SITE.name },
-    publisher: { "@type": "Organization", name: SITE.parentCompany },
-    mainEntityOfPage: new URL(`/blog/${post.slug}`, SITE.url).toString(),
-  };
+/** Approximate word count from the post body, for Article schema. */
+function postWordCount(post: NonNullable<ReturnType<typeof getPost>>): number {
+  let words = 0;
+  for (const b of post.body) {
+    if (b.type === "p" || b.type === "h2" || b.type === "cta") words += b.text.split(/\s+/).length;
+    else if (b.type === "ul") words += b.items.join(" ").split(/\s+/).length;
+  }
+  return words;
 }
 
 function BlockView({ block }: { block: Block }) {
@@ -88,7 +90,14 @@ export default async function BlogPostPage({
     <>
       <JsonLd
         data={[
-          articleSchema(post),
+          articleSchema({
+            title: post.title,
+            description: post.excerpt,
+            path,
+            datePublished: post.date,
+            section: post.category,
+            wordCount: postWordCount(post),
+          }),
           breadcrumbSchema(crumbs),
           ...(post.faqs ? [faqSchema(post.faqs)] : []),
         ]}
@@ -103,6 +112,7 @@ export default async function BlogPostPage({
           {post.title}
         </h1>
         <p className="mt-3 text-sm text-ink-400">
+          By the {SITE.name} team · Reviewed for {SITE.regionName} ·{" "}
           {new Date(post.date).toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",

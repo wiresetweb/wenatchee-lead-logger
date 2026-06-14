@@ -5,6 +5,7 @@ import { SITE } from "@/lib/site";
 import { SERVICES, getService } from "@/content/services";
 import { FEATURED_CITIES } from "@/content/cities";
 import { GUIDES } from "@/content/guides";
+import { POSTS_BY_DATE } from "@/content/blog";
 import {
   pageMeta,
   serviceSchema,
@@ -165,6 +166,22 @@ export default async function ServicePage({
           ))}{" "}
           and across {SITE.regionName}.
         </p>
+
+        {/* Topical internal links to the blog. */}
+        <div className="mx-auto mt-12 max-w-3xl border-t border-ink-200 pt-8">
+          <p className="text-center text-sm font-semibold text-ink-500">From the blog</p>
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            {POSTS_BY_DATE.slice(0, 3).map((p) => (
+              <Link
+                key={p.slug}
+                href={`/blog/${p.slug}`}
+                className="rounded-full border border-ink-200 bg-white px-4 py-2 text-sm font-medium text-ink-700 hover:border-brand-300 hover:text-brand-700"
+              >
+                {p.title}
+              </Link>
+            ))}
+          </div>
+        </div>
       </Section>
 
       <CtaBand />

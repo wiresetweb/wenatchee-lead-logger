@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE } from "@/lib/site";
-import { pageMeta } from "@/lib/seo";
+import { pageMeta, itemListSchema, breadcrumbSchema } from "@/lib/seo";
 import { POSTS_BY_DATE } from "@/content/blog";
 import { Container } from "@/components/ui";
-import { CtaBand } from "@/components/sections";
+import { CtaBand, Breadcrumbs } from "@/components/sections";
+import { JsonLd } from "@/components/JsonLd";
 
 export const metadata: Metadata = pageMeta({
-  title: "The Cascade Home Connect blog",
-  description: `Local electrical advice for ${SITE.regionShort} homeowners — permits, panel upgrades, hiring tips, EV chargers, and more.`,
+  title: `Electrical Advice for ${SITE.regionShort} Homeowners`,
+  description: `Local electrical advice for ${SITE.regionShort} homeowners — permits, panel upgrades, hiring tips, EV chargers, generator sizing, and more, written for our corner of Washington.`,
   path: "/blog",
 });
+
+const crumbs = [
+  { name: "Home", path: "/" },
+  { name: "Blog", path: "/blog" },
+];
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -25,15 +31,28 @@ export default function BlogIndexPage() {
 
   return (
     <>
+      <JsonLd
+        data={[
+          breadcrumbSchema(crumbs),
+          itemListSchema({
+            name: `Electrical advice for ${SITE.regionShort} homeowners`,
+            items: POSTS_BY_DATE.map((p) => ({ name: p.title, path: `/blog/${p.slug}` })),
+          }),
+        ]}
+      />
+
       <section className="bg-gradient-to-b from-brand-50 to-white py-12 sm:py-16">
-        <Container className="max-w-2xl text-center">
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">
-            Advice for Wenatchee Valley homeowners
-          </h1>
-          <p className="mt-3 text-lg text-ink-600">
-            Straight answers on electrical work, permits, costs, and hiring — written for our
-            corner of Washington.
-          </p>
+        <Container>
+          <Breadcrumbs items={crumbs} />
+          <div className="mx-auto mt-6 max-w-2xl text-center">
+            <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink-900 sm:text-4xl">
+              Electrical advice for {SITE.regionShort} homeowners
+            </h1>
+            <p className="mt-3 text-lg text-ink-600">
+              Straight answers on electrical work, permits, costs, and hiring — written for
+              our corner of Washington.
+            </p>
+          </div>
         </Container>
       </section>
 
