@@ -28,9 +28,21 @@ const BBOX = { minLon: -121.2, minLat: 46.9, maxLon: -119.3, maxLat: 48.4 };
 export async function suggestAddresses(query: string): Promise<AddressSuggestion[]> {
   const q = query.trim();
   if (q.length < 4) return [];
+
+  // Prefer Mapbox when a token is set, but fall back to Photon if the token is missing,
+  // invalid, restricted, or simply returns nothing — so autocomplete never goes dark
+  // (e.g. when a plain-text MAPBOX_TOKEN Variable got wiped by a deploy).
+  const token = process.env.MAPBOX_TOKEN;
+  if (token) {
+    try {
+      const m = await mapbox(q, token);
+      if (m.length > 0) return m;
+    } catch (err) {
+      console.warn("[geocode] Mapbox lookup failed; falling back to Photon:", err);
+    }
+  }
   try {
-    const token = process.env.MAPBOX_TOKEN;
-    return token ? await mapbox(q, token) : await photon(q);
+    return await photon(q);
   } catch {
     return [];
   }

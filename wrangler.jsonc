@@ -22,7 +22,10 @@
   // overwrites dashboard plain-text Variables with this list — but it never touches
   // Secrets. So: non-secret config goes here; secrets stay as dashboard Secrets.)
   "vars": {
-    "SUPABASE_URL": "https://btifsnnjuiwpbwvlzstc.supabase.co"
+    "SUPABASE_URL": "https://btifsnnjuiwpbwvlzstc.supabase.co",
+    // Owner/operator notification recipient for every captured lead. Non-secret, so it
+    // lives here to survive deploys (a dashboard plain-text Variable gets wiped).
+    "OWNER_NOTIFY_EMAIL": "hello@wiresetweb.com"
   },
   "observability": {
     "enabled": true
