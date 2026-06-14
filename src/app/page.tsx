@@ -39,12 +39,14 @@ export default function HomePage() {
               <ButtonLink href="#choose" size="lg" className="shadow-lg shadow-brand-950/40">
                 Choose what you need
               </ButtonLink>
-              <a
-                href={SITE.phoneHref}
-                className="text-base font-semibold text-white underline-offset-4 hover:underline"
-              >
-                or call {SITE.phone}
-              </a>
+              {SITE.phoneEnabled && (
+                <a
+                  href={SITE.phoneHref}
+                  className="text-base font-semibold text-white underline-offset-4 hover:underline"
+                >
+                  or call {SITE.phone}
+                </a>
+              )}
             </div>
           </div>
         </Container>

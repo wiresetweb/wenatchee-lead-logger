@@ -19,6 +19,9 @@ export const SITE = {
     "Always free for homeowners.",
 
   // Placeholder contact details — replace with real provisioned values before launch.
+  // Phone is hidden site-wide for now (lead-gen model — no staffed line yet). Flip
+  // phoneEnabled to true once a real tracking/forwarding number is provisioned.
+  phoneEnabled: false as boolean,
   phone: "(509) 555-0142",
   phoneHref: "tel:+15095550142",
   email: "hello@cascadehomeconnect.com",

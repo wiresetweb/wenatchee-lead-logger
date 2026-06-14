@@ -42,12 +42,14 @@ export function Header() {
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">
-          <a
-            href={SITE.phoneHref}
-            className="text-sm font-semibold text-ink-800 hover:text-brand-700"
-          >
-            {SITE.phone}
-          </a>
+          {SITE.phoneEnabled && (
+            <a
+              href={SITE.phoneHref}
+              className="text-sm font-semibold text-ink-800 hover:text-brand-700"
+            >
+              {SITE.phone}
+            </a>
+          )}
           <ButtonLink href="/get-quote">Get a free quote</ButtonLink>
         </div>
 
@@ -82,9 +84,11 @@ export function Header() {
               </Link>
             ))}
             <div className="flex flex-col gap-3 px-3 pt-3">
-              <a href={SITE.phoneHref} className="text-base font-semibold text-ink-800">
-                Call {SITE.phone}
-              </a>
+              {SITE.phoneEnabled && (
+                <a href={SITE.phoneHref} className="text-base font-semibold text-ink-800">
+                  Call {SITE.phone}
+                </a>
+              )}
               <ButtonLink href="/get-quote" size="lg" className="w-full">
                 Get a free quote
               </ButtonLink>

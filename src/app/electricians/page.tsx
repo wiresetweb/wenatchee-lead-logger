@@ -77,12 +77,14 @@ export default function ElectriciansHubPage() {
                 <ButtonLink href="/get-quote" size="lg" className="shadow-lg shadow-brand-950/40">
                   Get my free quote
                 </ButtonLink>
-                <a
-                  href={SITE.phoneHref}
-                  className="text-base font-semibold text-white underline-offset-4 hover:underline"
-                >
-                  or call {SITE.phone}
-                </a>
+                {SITE.phoneEnabled && (
+                  <a
+                    href={SITE.phoneHref}
+                    className="text-base font-semibold text-white underline-offset-4 hover:underline"
+                  >
+                    or call {SITE.phone}
+                  </a>
+                )}
               </div>
             </div>
             <div className="lg:pl-6">

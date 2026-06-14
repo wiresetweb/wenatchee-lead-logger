@@ -80,9 +80,11 @@ export default function ThankYouPage() {
         <ButtonLink href="/" variant="secondary">
           Back to home
         </ButtonLink>
-        <a href={SITE.phoneHref} className="font-semibold text-brand-700 hover:text-brand-800">
-          Questions? Call {SITE.phone}
-        </a>
+        {SITE.phoneEnabled && (
+          <a href={SITE.phoneHref} className="font-semibold text-brand-700 hover:text-brand-800">
+            Questions? Call {SITE.phone}
+          </a>
+        )}
       </div>
     </Container>
   );

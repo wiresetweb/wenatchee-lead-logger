@@ -58,12 +58,14 @@ export default function ForContractorsPage() {
               <ButtonLink href="/contact" size="lg">
                 Become a partner
               </ButtonLink>
-              <a
-                href={SITE.phoneHref}
-                className="inline-flex items-center font-semibold text-white hover:text-brand-200"
-              >
-                or call {SITE.phone}
-              </a>
+              {SITE.phoneEnabled && (
+                <a
+                  href={SITE.phoneHref}
+                  className="inline-flex items-center font-semibold text-white hover:text-brand-200"
+                >
+                  or call {SITE.phone}
+                </a>
+              )}
             </div>
           </div>
         </Container>

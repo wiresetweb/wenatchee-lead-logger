@@ -91,12 +91,14 @@ export default async function ServiceCityPage({
                 <ButtonLink href="/get-quote" size="lg">
                   Get a free quote
                 </ButtonLink>
-                <a
-                  href={SITE.phoneHref}
-                  className="font-semibold text-ink-800 hover:text-brand-700"
-                >
-                  or call {SITE.phone}
-                </a>
+                {SITE.phoneEnabled && (
+                  <a
+                    href={SITE.phoneHref}
+                    className="font-semibold text-ink-800 hover:text-brand-700"
+                  >
+                    or call {SITE.phone}
+                  </a>
+                )}
               </div>
             </div>
             <div className="rounded-2xl border border-brand-200 bg-brand-50 p-6">

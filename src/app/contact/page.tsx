@@ -47,12 +47,14 @@ export default function ContactPage() {
                 {SITE.email}
               </a>
             </p>
-            <p>
-              <span className="font-semibold">Phone:</span>{" "}
-              <a href={SITE.phoneHref} className="text-brand-700 hover:underline">
-                {SITE.phone}
-              </a>
-            </p>
+            {SITE.phoneEnabled && (
+              <p>
+                <span className="font-semibold">Phone:</span>{" "}
+                <a href={SITE.phoneHref} className="text-brand-700 hover:underline">
+                  {SITE.phone}
+                </a>
+              </p>
+            )}
           </div>
         </Card>
       </div>

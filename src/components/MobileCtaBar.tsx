@@ -17,15 +17,17 @@ export function MobileCtaBar() {
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-ink-200 bg-white/95 p-3 backdrop-blur lg:hidden [padding-bottom:max(0.75rem,env(safe-area-inset-bottom))]">
       <div className="mx-auto flex max-w-md gap-3">
-        <a
-          href={SITE.phoneHref}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-ink-300 px-4 py-3 text-sm font-semibold text-ink-800"
-        >
-          <PhoneIcon /> Call now
-        </a>
+        {SITE.phoneEnabled && (
+          <a
+            href={SITE.phoneHref}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-ink-300 px-4 py-3 text-sm font-semibold text-ink-800"
+          >
+            <PhoneIcon /> Call now
+          </a>
+        )}
         <Link
           href="/get-quote"
-          className="flex flex-[1.4] items-center justify-center rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white shadow-sm"
+          className="flex flex-1 items-center justify-center rounded-xl bg-brand-600 px-4 py-3 text-sm font-bold text-white shadow-sm"
         >
           Get my free quote →
         </Link>

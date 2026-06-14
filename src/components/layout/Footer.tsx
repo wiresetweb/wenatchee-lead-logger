@@ -14,11 +14,13 @@ export function Footer() {
               The friendly local way to get matched with a trusted home-service pro in{" "}
               {SITE.regionName}. Always free for homeowners.
             </p>
-            <p className="mt-4 text-sm font-medium text-ink-700">
-              <a href={SITE.phoneHref} className="hover:text-brand-700">
-                {SITE.phone}
-              </a>
-            </p>
+            {SITE.phoneEnabled && (
+              <p className="mt-4 text-sm font-medium text-ink-700">
+                <a href={SITE.phoneHref} className="hover:text-brand-700">
+                  {SITE.phone}
+                </a>
+              </p>
+            )}
           </div>
 
           {FOOTER_NAV.map((group) => (
