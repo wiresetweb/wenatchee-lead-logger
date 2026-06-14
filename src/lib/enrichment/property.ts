@@ -54,14 +54,23 @@ const COUNTY_LAYERS: Record<string, string[]> = {
   Chelan: [
     "https://maps.wenatcheewa.gov/server/rest/services/Parcels/FeatureServer/0",
   ],
-  // Douglas County migrated gis.douglascountywa.net → gis.douglascountywa.gov (the old
-  // host is dead). The public "Parcels" service is token-gated; the open parcel data is
-  // exposed via Parcel_Sales_Export_Tool (discovered from the live server catalog).
+  // Douglas County exposes no anonymous parcel layer (the "Parcels" service is
+  // token-gated and Parcel_Sales_Export_Tool has no queryable layers). We rely on the
+  // statewide fallback below for Douglas, but keep this entry for discovery's catalog.
   Douglas: [
     "https://gis.douglascountywa.gov/server/rest/services/Parcel_Sales_Export_Tool/MapServer/0",
-    "https://gis.douglascountywa.gov/server/rest/services/Parcel_Sales_Export_Tool/FeatureServer/0",
   ],
 };
+
+/**
+ * Statewide ArcGIS catalogs tried for ANY county (covers counties with no usable local
+ * server, like Douglas). Washington's County_Parcels service has one layer per county
+ * with owner/taxpayer + situs fields normalized across counties — discovery matches the
+ * layer named after the lead's county. These catalogs are scanned by discover().
+ */
+const STATEWIDE_BASES: string[] = [
+  "https://wisaard.dahp.wa.gov/server/rest/services",
+];
 
 /** Detect a field value from an attributes object by matching the key name. */
 function pick(attrs: Record<string, unknown>, include: RegExp, exclude?: RegExp): unknown {
@@ -154,7 +163,7 @@ async function fetchJson(url: string): Promise<unknown | null> {
  * enumerating each service's layers to find the real parcel layer id. This self-heals
  * when a county renames or restructures its parcel service (as Douglas did).
  */
-async function discover(base: string): Promise<{ attempt: ParcelAttempt; candidates: string[] }> {
+async function discover(base: string, county: string | null): Promise<{ attempt: ParcelAttempt; candidates: string[] }> {
   const url = `${base}?f=json`;
   const attempt: ParcelAttempt = { url };
   try {
@@ -199,8 +208,13 @@ async function discover(base: string): Promise<{ attempt: ParcelAttempt; candida
         // Record the layer list in diagnostics so a miss still reveals the right layer.
         const summary = `${s.name}/${s.type} layers=[${layers.map((L) => `${L.id}:${L.name}`).slice(0, 12).join(", ")}]`;
         if (!layers.length) return { urls: [`${svcUrl}/0`], summary };
-        const named = layers.filter((L) => /parcel|tax|property|sales|owner|assess/i.test(L.name ?? ""));
-        const urls = (named.length ? named : layers).slice(0, 6).map((L) => `${svcUrl}/${L.id ?? 0}`);
+        // Prefer a layer named after the lead's county (statewide per-county services),
+        // else parcel-ish names, else fall back to trying the first several layers.
+        const lc = (county ?? "").toLowerCase();
+        const byCounty = lc ? layers.filter((L) => (L.name ?? "").toLowerCase().includes(lc)) : [];
+        const byName = layers.filter((L) => /parcel|tax|property|sales|owner|assess/i.test(L.name ?? ""));
+        const chosen = (byCounty.length ? byCounty : byName.length ? byName : layers).slice(0, 8);
+        const urls = chosen.map((L) => `${svcUrl}/${L.id ?? 0}`);
         return { urls, summary };
       }),
     );
@@ -218,8 +232,7 @@ export async function lookupParcel(
   lng: number,
   county: string | null,
 ): Promise<ParcelData | null> {
-  const layers = county ? COUNTY_LAYERS[county] : undefined;
-  if (!layers) return null;
+  const layers = (county && COUNTY_LAYERS[county]) || [];
 
   const attempts: ParcelAttempt[] = [];
   const empty = (): ParcelData => ({
@@ -244,15 +257,21 @@ export async function lookupParcel(
     return null;
   };
 
-  // 1. Configured layers (fast path).
-  const configured = await tryUrls(layers);
-  if (configured) return configured;
+  // 1. Configured county layers (fast path).
+  if (layers.length) {
+    const configured = await tryUrls(layers);
+    if (configured) return configured;
+  }
 
-  // 2. Discovery fallback: scan each server catalog for parcel services and try them.
-  // Also records the catalog in diagnostics so a real lead reveals the true service names.
-  const bases = [...new Set(layers.map((u) => u.replace(/\/rest\/services\/.*$/, "/rest/services")))];
+  // 2. Discovery fallback: scan each county server catalog AND the statewide catalogs
+  // for parcel services, enumerate their layers, and try them. Records each catalog in
+  // diagnostics so a real lead reveals the true service/layer names.
+  const bases = [
+    ...new Set(layers.map((u) => u.replace(/\/rest\/services\/.*$/, "/rest/services"))),
+    ...STATEWIDE_BASES,
+  ];
   for (const base of bases) {
-    const { attempt, candidates } = await discover(base);
+    const { attempt, candidates } = await discover(base, county);
     attempts.push(attempt);
     const discovered = await tryUrls(candidates.filter((u) => !layers.includes(u)));
     if (discovered) return discovered;
