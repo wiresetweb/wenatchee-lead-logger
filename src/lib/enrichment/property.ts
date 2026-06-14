@@ -191,17 +191,21 @@ async function discover(base: string): Promise<{ attempt: ParcelAttempt; candida
     const parcelSvcs = all
       .filter((s) => s.name && /parcel/i.test(s.name) && /(MapServer|FeatureServer)/i.test(s.type ?? ""))
       .slice(0, 4);
-    const layerLists = await Promise.all(
+    const enumed = await Promise.all(
       parcelSvcs.map(async (s) => {
         const svcUrl = `${base}/${s.name}/${s.type}`;
         const meta = (await fetchJson(`${svcUrl}?f=json`)) as { layers?: { id?: number; name?: string }[] } | null;
         const layers = meta?.layers ?? [];
-        if (!layers.length) return [`${svcUrl}/0`];
-        const named = layers.filter((L) => /parcel/i.test(L.name ?? ""));
-        return (named.length ? named : layers).slice(0, 3).map((L) => `${svcUrl}/${L.id ?? 0}`);
+        // Record the layer list in diagnostics so a miss still reveals the right layer.
+        const summary = `${s.name}/${s.type} layers=[${layers.map((L) => `${L.id}:${L.name}`).slice(0, 12).join(", ")}]`;
+        if (!layers.length) return { urls: [`${svcUrl}/0`], summary };
+        const named = layers.filter((L) => /parcel|tax|property|sales|owner|assess/i.test(L.name ?? ""));
+        const urls = (named.length ? named : layers).slice(0, 6).map((L) => `${svcUrl}/${L.id ?? 0}`);
+        return { urls, summary };
       }),
     );
-    const candidates = [...new Set(layerLists.flat())];
+    const candidates = [...new Set(enumed.flatMap((e) => e.urls))];
+    attempt.services = [...(attempt.services ?? []), ...enumed.map((e) => e.summary)];
     return { attempt, candidates };
   } catch (e) {
     attempt.error = e instanceof Error ? e.message : String(e);
