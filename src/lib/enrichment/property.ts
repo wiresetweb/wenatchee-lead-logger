@@ -55,11 +55,11 @@ const COUNTY_LAYERS: Record<string, string[]> = {
     "https://maps.wenatcheewa.gov/server/rest/services/Parcels/FeatureServer/0",
   ],
   // Douglas County migrated gis.douglascountywa.net → gis.douglascountywa.gov (the old
-  // host is dead — DNS no longer resolves, which surfaced as HTTP 530 in diagnostics).
+  // host is dead). The public "Parcels" service is token-gated; the open parcel data is
+  // exposed via Parcel_Sales_Export_Tool (discovered from the live server catalog).
   Douglas: [
-    "https://gis.douglascountywa.gov/server/rest/services/Parcels/MapServer/0",
-    "https://gis.douglascountywa.gov/server/rest/services/Parcels/FeatureServer/0",
-    "https://gis.douglascountywa.gov/server/rest/services/Tax_Parcels/MapServer/0",
+    "https://gis.douglascountywa.gov/server/rest/services/Parcel_Sales_Export_Tool/MapServer/0",
+    "https://gis.douglascountywa.gov/server/rest/services/Parcel_Sales_Export_Tool/FeatureServer/0",
   ],
 };
 
@@ -106,24 +106,81 @@ async function queryLayer(
   return data.features[0].attributes ?? null;
 }
 
-/** Probe the ArcGIS server catalog to discover available service names. */
-async function probeCatalog(base: string): Promise<ParcelAttempt> {
+/** Map a parcel-feature attributes object to ParcelData (field names vary by county, so
+ *  we detect them by key pattern). Shared by configured + discovered layer hits. */
+function buildFromAttrs(
+  attrs: Record<string, unknown>,
+  url: string,
+  attempts: ParcelAttempt[],
+): ParcelData {
+  const ownerName = toStr(pick(attrs, /owner|taxpayer/i, /addr|mail|city|state|zip|care|co_owner_addr/i));
+  const yb = toNumber(pick(attrs, /year.?built|yr.?blt|yearbuilt|actyrblt/i));
+  const bath = toNumber(pick(attrs, /bath|bthrm|\bba\b|full.?bath/i, /half|garage/i));
+  return {
+    ownerName,
+    mailingAddress: toStr(pick(attrs, /mail|owner.?addr|tax.?addr|care.?of/i, /name|city|state|zip|country/i)),
+    yearBuilt: yb && yb > 1700 && yb <= new Date().getFullYear() ? yb : null,
+    assessedValue: toNumber(pick(attrs, /assess|market.?val|total.?val|apprais|taxable.?val/i, /land.?val|year/i)),
+    situsAddress: toStr(pick(attrs, /situs|site.?addr|prop.?addr|location.?addr/i, /owner|mail/i)),
+    landUse: toStr(pick(attrs, /land.?use|use.?code|prop.?class|property.?type|use.?desc/i)),
+    saleDate: toStr(pick(attrs, /sale.?date|saledt|deed.?date|rec.?date|transfer.?date|doc.?date|last.?sale/i, /price|amt|val/i)),
+    salePrice: toNumber(pick(attrs, /sale.?price|sale.?amt|saleamt|sale.?val|consideration|deed.?price/i, /date|year/i)),
+    sqft: toNumber(pick(attrs, /sq.?ft|sqft|square.?feet|living.?area|finished.?area|bldg.?area|heated.?area|gross.?area|\bgla\b/i, /lot|land|unfinished|base|garage/i)),
+    bedrooms: toNumber(pick(attrs, /bed|bdrm|\bbr\b|nbr.?bed/i, /bath/i)),
+    bathrooms: bath,
+    stories: toNumber(pick(attrs, /stor(y|ies)|num.?floor|nbr.?stor|floors/i, /sqft|area/i)),
+    heating: toStr(pick(attrs, /heat/i, /water.?heat|sqft|area/i)),
+    cooling: toStr(pick(attrs, /cool|air.?cond|central.?air|\bac\b/i, /account|tract/i)),
+    source: url,
+    raw: attrs,
+    attempts,
+  };
+}
+
+/**
+ * Probe the ArcGIS server catalog (root + folders) for diagnostics AND derive candidate
+ * parcel layer URLs — any service whose name mentions "parcel" on a Map/FeatureServer.
+ * This self-heals when a county renames its parcel service (as Douglas did).
+ */
+async function discover(base: string): Promise<{ attempt: ParcelAttempt; candidates: string[] }> {
   const url = `${base}?f=json`;
   const attempt: ParcelAttempt = { url };
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(7000), headers: { accept: "application/json" } });
     attempt.status = res.status;
-    if (!res.ok) return attempt;
+    if (!res.ok) return { attempt, candidates: [] };
     const data = (await res.json()) as {
       services?: { name?: string; type?: string }[];
       folders?: string[];
     };
-    attempt.services = (data.services ?? []).map((s) => `${s.name}/${s.type}`).slice(0, 40);
-    attempt.folders = (data.folders ?? []).slice(0, 40);
+    const folders = data.folders ?? [];
+    // Pull each folder's service list too (parcels often live in a folder), in parallel.
+    const folderLists = await Promise.all(
+      folders.slice(0, 8).map(async (f) => {
+        try {
+          const r = await fetch(`${base}/${encodeURIComponent(f)}?f=json`, {
+            signal: AbortSignal.timeout(7000),
+            headers: { accept: "application/json" },
+          });
+          if (!r.ok) return [] as { name?: string; type?: string }[];
+          const d = (await r.json()) as { services?: { name?: string; type?: string }[] };
+          return d.services ?? [];
+        } catch {
+          return [] as { name?: string; type?: string }[];
+        }
+      }),
+    );
+    const all = [...(data.services ?? []), ...folderLists.flat()];
+    attempt.services = all.map((s) => `${s.name}/${s.type}`).slice(0, 60);
+    attempt.folders = folders.slice(0, 40);
+    const candidates = all
+      .filter((s) => s.name && /parcel/i.test(s.name) && /(MapServer|FeatureServer)/i.test(s.type ?? ""))
+      .map((s) => `${base}/${s.name}/${s.type}/0`);
+    return { attempt, candidates };
   } catch (e) {
     attempt.error = e instanceof Error ? e.message : String(e);
+    return { attempt, candidates: [] };
   }
-  return attempt;
 }
 
 export async function lookupParcel(
@@ -142,45 +199,34 @@ export async function lookupParcel(
     source: null, raw: null, attempts,
   });
 
-  for (const url of layers) {
-    const attempt: ParcelAttempt = { url };
-    attempts.push(attempt);
-    try {
-      const attrs = await queryLayer(url, lat, lng, attempt);
-      if (!attrs) continue;
-
-      const ownerName = toStr(pick(attrs, /owner|taxpayer/i, /addr|mail|city|state|zip|care|co_owner_addr/i));
-      const yb = toNumber(pick(attrs, /year.?built|yr.?blt|yearbuilt|actyrblt/i));
-      const bath = toNumber(pick(attrs, /bath|bthrm|\bba\b|full.?bath/i, /half|garage/i));
-      return {
-        ownerName,
-        // Mailing/tax address must look like a street (contains a number) to qualify.
-        mailingAddress: toStr(pick(attrs, /mail|owner.?addr|tax.?addr|care.?of/i, /name|city|state|zip|country/i)),
-        yearBuilt: yb && yb > 1700 && yb <= new Date().getFullYear() ? yb : null,
-        assessedValue: toNumber(pick(attrs, /assess|market.?val|total.?val|apprais|taxable.?val/i, /land.?val|year/i)),
-        situsAddress: toStr(pick(attrs, /situs|site.?addr|prop.?addr|location.?addr/i, /owner|mail/i)),
-        landUse: toStr(pick(attrs, /land.?use|use.?code|prop.?class|property.?type|use.?desc/i)),
-        saleDate: toStr(pick(attrs, /sale.?date|saledt|deed.?date|rec.?date|transfer.?date|doc.?date|last.?sale/i, /price|amt|val/i)),
-        salePrice: toNumber(pick(attrs, /sale.?price|sale.?amt|saleamt|sale.?val|consideration|deed.?price/i, /date|year/i)),
-        sqft: toNumber(pick(attrs, /sq.?ft|sqft|square.?feet|living.?area|finished.?area|bldg.?area|heated.?area|gross.?area|\bgla\b/i, /lot|land|unfinished|base|garage/i)),
-        bedrooms: toNumber(pick(attrs, /bed|bdrm|\bbr\b|nbr.?bed/i, /bath/i)),
-        bathrooms: bath,
-        stories: toNumber(pick(attrs, /stor(y|ies)|num.?floor|nbr.?stor|floors/i, /sqft|area/i)),
-        heating: toStr(pick(attrs, /heat/i, /water.?heat|sqft|area/i)),
-        cooling: toStr(pick(attrs, /cool|air.?cond|central.?air|\bac\b/i, /account|tract/i)),
-        source: url,
-        raw: attrs,
-        attempts,
-      };
-    } catch (e) {
-      attempt.error = e instanceof Error ? e.message : String(e);
+  // Try a list of candidate layer URLs; return the first that yields parcel attributes.
+  const tryUrls = async (urls: string[]): Promise<ParcelData | null> => {
+    for (const url of urls) {
+      const attempt: ParcelAttempt = { url };
+      attempts.push(attempt);
+      try {
+        const attrs = await queryLayer(url, lat, lng, attempt);
+        if (attrs) return buildFromAttrs(attrs, url, attempts);
+      } catch (e) {
+        attempt.error = e instanceof Error ? e.message : String(e);
+      }
     }
-  }
+    return null;
+  };
 
-  // Nothing matched — probe each distinct server catalog so the next lead reveals the
-  // real parcel service names.
+  // 1. Configured layers (fast path).
+  const configured = await tryUrls(layers);
+  if (configured) return configured;
+
+  // 2. Discovery fallback: scan each server catalog for parcel services and try them.
+  // Also records the catalog in diagnostics so a real lead reveals the true service names.
   const bases = [...new Set(layers.map((u) => u.replace(/\/rest\/services\/.*$/, "/rest/services")))];
-  for (const base of bases) attempts.push(await probeCatalog(base));
+  for (const base of bases) {
+    const { attempt, candidates } = await discover(base);
+    attempts.push(attempt);
+    const discovered = await tryUrls(candidates.filter((u) => !layers.includes(u)));
+    if (discovered) return discovered;
+  }
 
   return empty();
 }
