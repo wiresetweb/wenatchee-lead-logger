@@ -11,7 +11,7 @@
  * these hosts locally (sandbox egress is restricted).
  *
  * Sources: Chelan County Assessor parcels (maps.wenatcheewa.gov), Douglas County GIS
- * (gis.douglascountywa.net). Owner names are public records for taxation.
+ * (gis.douglascountywa.gov). Owner names are public records for taxation.
  */
 
 export interface ParcelAttempt {
@@ -54,10 +54,12 @@ const COUNTY_LAYERS: Record<string, string[]> = {
   Chelan: [
     "https://maps.wenatcheewa.gov/server/rest/services/Parcels/FeatureServer/0",
   ],
+  // Douglas County migrated gis.douglascountywa.net → gis.douglascountywa.gov (the old
+  // host is dead — DNS no longer resolves, which surfaced as HTTP 530 in diagnostics).
   Douglas: [
-    "https://gis.douglascountywa.net/server/rest/services/Parcels/MapServer/0",
-    "https://gis.douglascountywa.net/server/rest/services/Parcels/FeatureServer/0",
-    "https://gis.douglascountywa.net/server/rest/services/Tax_Parcels/MapServer/0",
+    "https://gis.douglascountywa.gov/server/rest/services/Parcels/MapServer/0",
+    "https://gis.douglascountywa.gov/server/rest/services/Parcels/FeatureServer/0",
+    "https://gis.douglascountywa.gov/server/rest/services/Tax_Parcels/MapServer/0",
   ],
 };
 
